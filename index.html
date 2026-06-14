@@ -34,6 +34,7 @@
 
     <nav class="tabs" aria-label="Tipos de licencia">
       <button class="tab active" data-panel="full">Premium FULL</button>
+      <button class="tab" data-panel="generator">Generar clave</button>
       <button class="tab" data-panel="temporary">Premium temporal</button>
       <button class="tab" data-panel="premiumFree">Premium-Free</button>
       <button class="tab" data-panel="freeTrial">FreeTrial</button>
@@ -52,6 +53,29 @@
       <div class="table-wrap">
         <table><thead><tr><th>Hardware ID</th><th>Comentario</th><th></th></tr></thead><tbody id="fullRows"></tbody></table>
       </div>
+    </section>
+
+    <section id="generator" class="panel card">
+      <div class="panel-heading">
+        <div>
+          <h2>Generar clave Premium FULL</h2>
+          <p>Emite una licencia firmada y ligada al Hardware ID mediante GitHub Actions.</p>
+        </div>
+      </div>
+      <div class="editor generator-editor">
+        <div class="field"><label for="generatorHwid">Hardware ID</label><input id="generatorHwid"></div>
+        <div class="field"><label for="generatorClient">Cliente</label><input id="generatorClient"></div>
+        <div class="field"><label for="generatorProduct">Producto</label><input id="generatorProduct" value="Software Infamous"></div>
+        <button class="primary" data-action="generate-license">Generar licencia</button>
+      </div>
+      <div class="field license-output">
+        <label for="generatedLicense">Clave de activación</label>
+        <textarea id="generatedLicense" readonly spellcheck="false" placeholder="La clave aparecerá aquí al terminar el workflow."></textarea>
+        <button data-action="copy-license">Copiar clave</button>
+      </div>
+      <p class="security-note generator-note">
+        Requiere el secret <code>SIGNED_LICENSE_PRIVATE_KEY</code> y permisos Actions/Contents de lectura y escritura para <code>LicenseAdmin-Web</code>.
+      </p>
     </section>
 
     <section id="temporary" class="panel card">

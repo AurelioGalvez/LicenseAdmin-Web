@@ -26,7 +26,8 @@ main { max-width: 1280px; margin: auto; padding: 0 28px 48px; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field label { color: var(--muted); font-size: 12px; font-weight: 700; }
 input { width: 100%; border: 1px solid var(--line); background: #0c111a; color: var(--text); border-radius: 9px; padding: 10px 12px; outline: none; }
-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px #ffb02022; }
+textarea { width: 100%; min-height: 150px; resize: vertical; border: 1px solid var(--line); background: #0c111a; color: var(--text); border-radius: 9px; padding: 12px; outline: none; font: 12px/1.45 Consolas, monospace; }
+input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px #ffb02022; }
 button { border: 1px solid var(--line); border-radius: 9px; padding: 10px 14px; background: var(--panel-2); color: var(--text); cursor: pointer; font-weight: 700; }
 button:hover { border-color: #46536f; transform: translateY(-1px); }
 button:disabled { opacity: .45; cursor: wait; transform: none; }
@@ -44,6 +45,10 @@ button:disabled { opacity: .45; cursor: wait; transform: none; }
 .editor, .settings-row { display: grid; gap: 12px; align-items: end; padding: 14px; background: #0c111a; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; }
 .editor.three { grid-template-columns: 1fr 1fr auto; }
 .temporary-editor { grid-template-columns: 1.4fr 1fr 110px auto auto; }
+.generator-editor { grid-template-columns: 1.4fr 1fr 1fr auto; }
+.license-output { padding: 14px; background: #0c111a; border: 1px solid var(--line); border-radius: 12px; }
+.license-output button { align-self: flex-end; }
+.generator-note { margin-top: 12px; }
 .settings-row { grid-template-columns: repeat(5, max-content); align-items: center; }
 .compact { max-width: 160px; }
 .check { display: flex; align-items: center; gap: 8px; color: var(--text); }
@@ -64,6 +69,6 @@ dialog::backdrop { background: #000a; backdrop-filter: blur(3px); }
 @media (max-width: 900px) {
   .connection { grid-template-columns: 1fr 1fr; }
   .token-field { grid-column: 1 / -1; }
-  .editor.three, .temporary-editor, .settings-row { grid-template-columns: 1fr; align-items: stretch; }
+  .editor.three, .temporary-editor, .generator-editor, .settings-row { grid-template-columns: 1fr; align-items: stretch; }
   .compact { max-width: none; }
 }

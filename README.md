@@ -15,6 +15,28 @@ GitHub Pages no puede proteger secretos del lado servidor. Por eso el
 administrador debe introducir su propio token en cada sesión. No publiques un
 token dentro de `app.js`.
 
+## Generacion de claves Premium FULL
+
+La pestana **Generar clave** emite licencias firmadas y ligadas al Hardware ID.
+La llave privada no se incluye en la web: GitHub Actions la recibe mediante el
+secret `SIGNED_LICENSE_PRIVATE_KEY`.
+
+Configuracion inicial:
+
+1. Publica este repositorio con el workflow de `.github/workflows`.
+2. Abre `Settings > Secrets and variables > Actions`.
+3. Crea `SIGNED_LICENSE_PRIVATE_KEY`.
+4. Usa como valor el contenido de
+   `.secrets/SIGNED_LICENSE_PRIVATE_KEY.pem` de la maquina de administracion.
+5. El token usado en la web debe tener `Actions: Read and write` y
+   `Contents: Read and write` para `LicenseAdmin-Web`.
+
+La llave privada no debe publicarse, adjuntarse a releases ni copiarse dentro
+de Software Infamous.
+
+Al generar una clave, el HWID también se agrega a `Licenses.txt`. Eliminarlo
+desde Premium FULL revoca la licencia firmada en la siguiente validación online.
+
 ## Publicación
 
 1. Crea un repositorio, por ejemplo `LicenseAdmin-Web`.

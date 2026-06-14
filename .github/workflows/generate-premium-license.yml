@@ -1,0 +1,52 @@
+name: Generate Premium FULL license
+
+run-name: "Premium FULL ${{ inputs.request_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Request identifier
+        required: true
+        type: string
+      hardware_id:
+        description: Hardware ID
+        required: true
+        type: string
+      client:
+        description: Client name
+        required: true
+        type: string
+      product:
+        description: Product name
+        required: true
+        default: Software Infamous
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate signed license
+        env:
+          SIGNED_LICENSE_PRIVATE_KEY: ${{ secrets.SIGNED_LICENSE_PRIVATE_KEY }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          HARDWARE_ID: ${{ inputs.hardware_id }}
+          CLIENT: ${{ inputs.client }}
+          PRODUCT: ${{ inputs.product }}
+        run: node tools/generate-license.mjs
+
+      - name: Publish response
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add generated/
+          git commit -m "Generate Premium FULL ${REQUEST_ID}"
+          git push
+        env:
+          REQUEST_ID: ${{ inputs.request_id }}

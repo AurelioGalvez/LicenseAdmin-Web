@@ -2,6 +2,11 @@
 
 const state = { token: "", owner: "", repo: "", branch: "main", full: [], temporary: [], pendingDelete: null };
 const $ = id => document.getElementById(id);
+const generator = {
+  repository: "LicenseAdmin-Web",
+  branch: "main",
+  workflow: "generate-premium-license.yml"
+};
 const files = {
   full: "Licenses.txt",
   tempEnabled: "PremiumHwidEnabled.txt",
@@ -31,9 +36,13 @@ function apiHeaders() {
   };
 }
 
-function contentUrl(path) {
+function repositoryContentUrl(repository, path) {
   const escaped = path.split("/").map(encodeURIComponent).join("/");
-  return `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${encodeURIComponent(state.repo)}/contents/${escaped}`;
+  return `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${encodeURIComponent(repository)}/contents/${escaped}`;
+}
+
+function contentUrl(path) {
+  return repositoryContentUrl(state.repo, path);
 }
 
 async function api(url, options = {}) {
@@ -118,6 +127,36 @@ async function writeFile(path, content, message) {
   throw new Error(`No se pudo actualizar ${path} despues de varios intentos.`);
 }
 
+async function readRepositoryFile(repository, path, branch) {
+  const query = new URLSearchParams({
+    ref: branch,
+    _: `${Date.now()}-${Math.random()}`
+  });
+  const response = await fetch(`${repositoryContentUrl(repository, path)}?${query}`, {
+    cache: "no-store",
+    headers: apiHeaders()
+  });
+  if (response.status === 404) return null;
+  const data = await response.json();
+  if (!response.ok) throw new Error(`GitHub ${response.status}: ${data.message || response.statusText}`);
+  return {
+    content: decodeURIComponent(escape(atob(data.content.replace(/\s/g, "")))),
+    sha: data.sha
+  };
+}
+
+async function deleteRepositoryFile(repository, path, branch, sha) {
+  return api(repositoryContentUrl(repository, path), {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: `Remove generated license response ${path}`,
+      branch,
+      sha
+    })
+  });
+}
+
 const parseList = content => content.split(/\r?\n/).filter(Boolean).map(line => {
   const [hardwareId, comment = ""] = line.split("//", 2);
   return { hardwareId: hardwareId.trim(), comment: comment.trim() };
@@ -176,6 +215,99 @@ async function saveFull() {
   await writeFile(files.full, serializeList(state.full), `${existing ? "Update" : "Add"} Premium FULL ${hardwareId}`);
   await loadFull();
 }
+
+async function generateSignedLicense() {
+  requireConnection();
+  const hardwareId = $("generatorHwid").value.trim();
+  const client = $("generatorClient").value.trim();
+  const product = $("generatorProduct").value.trim();
+  if (!/^[A-Za-z0-9-]{10,200}$/.test(hardwareId)) {
+    throw new Error("Introduce un Hardware ID válido.");
+  }
+  if (!client) throw new Error("Introduce el nombre del cliente.");
+  if (!product) throw new Error("Introduce el producto.");
+
+  const requestId = crypto.randomUUID();
+  $("generatedLicense").value = "";
+  status("Registrando Premium FULL y solicitando la firma...", "");
+
+  state.full = parseList((await readFile(files.full)).content);
+  const existing = state.full.find(
+    entry => entry.hardwareId.toLowerCase() === hardwareId.toLowerCase()
+  );
+  if (existing) {
+    existing.comment = existing.comment || `Signed Premium: ${client}`;
+  } else {
+    state.full.push({
+      hardwareId,
+      comment: `Signed Premium: ${client}`
+    });
+  }
+  await writeFile(
+    files.full,
+    serializeList(state.full),
+    `Authorize signed Premium FULL ${hardwareId}`
+  );
+
+  await api(
+    `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${generator.repository}/actions/workflows/${generator.workflow}/dispatches`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ref: generator.branch,
+        inputs: {
+          request_id: requestId,
+          hardware_id: hardwareId,
+          client,
+          product
+        }
+      })
+    }
+  );
+
+  const path = `generated/${requestId}.json`;
+  for (let attempt = 1; attempt <= 60; attempt++) {
+    await delay(3000);
+    const response = await readRepositoryFile(
+      generator.repository,
+      path,
+      generator.branch
+    );
+    if (!response) {
+      status(`Generando licencia... intento ${attempt}/60`, "");
+      continue;
+    }
+
+    const result = JSON.parse(response.content);
+    if (result.requestId !== requestId || !result.license) {
+      throw new Error("GitHub Actions devolvió una respuesta inválida.");
+    }
+
+    $("generatedLicense").value = result.license;
+    await deleteRepositoryFile(
+      generator.repository,
+      path,
+      generator.branch,
+      response.sha
+    );
+    status(`Licencia Premium FULL ${result.licenseId} generada.`, "success");
+    return;
+  }
+
+  throw new Error(
+    "GitHub Actions no respondió en 3 minutos. Revisa la pestaña Actions del repositorio."
+  );
+}
+
+async function copyGeneratedLicense() {
+  const license = $("generatedLicense").value.trim();
+  if (!license) throw new Error("Primero genera una licencia.");
+  await navigator.clipboard.writeText(license);
+  status("Clave de activación copiada.", "success");
+}
+
+const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
 async function loadTemporary() {
   const [enabled, defaults, list] = await Promise.all([
@@ -303,7 +435,14 @@ async function confirmDelete() {
 
 async function loadActivePanel() {
   const active = document.querySelector(".panel.active").id;
-  return ({ full: loadFull, temporary: loadTemporary, premiumFree: loadPremiumFree, freeTrial: loadFree })[active]();
+  const loaders = {
+    full: loadFull,
+    generator: async () => status("Generador Premium FULL listo.", "success"),
+    temporary: loadTemporary,
+    premiumFree: loadPremiumFree,
+    freeTrial: loadFree
+  };
+  return loaders[active]();
 }
 
 async function run(action) {
@@ -320,6 +459,7 @@ document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", (
 
 const actions = {
   "load-full": loadFull, "save-full": saveFull,
+  "generate-license": generateSignedLicense, "copy-license": copyGeneratedLicense,
   "load-temporary": loadTemporary, "save-temp-config": saveTempConfig, "save-temporary": saveTemporary,
   "load-premium-free": loadPremiumFree, "save-premium-free": savePremiumFree,
   "load-free": loadFree, "save-free": saveFree
