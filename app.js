@@ -7,6 +7,9 @@ const generator = {
   branch: "main",
   workflow: "generate-premium-license.yml"
 };
+const licenseAuthority = {
+  repository: "Launcher-Licenses"
+};
 const files = {
   full: "Licenses.txt",
   tempEnabled: "PremiumHwidEnabled.txt",
@@ -73,7 +76,8 @@ async function api(url, options = {}) {
 async function connect() {
   state.token = $("token").value.trim();
   state.owner = $("owner").value.trim();
-  state.repo = $("repository").value.trim();
+  state.repo = licenseAuthority.repository;
+  $("repository").value = state.repo;
   requireConnection();
   const repo = await api(`https://api.github.com/repos/${encodeURIComponent(state.owner)}/${encodeURIComponent(state.repo)}`);
   state.branch = repo.default_branch;
@@ -157,6 +161,66 @@ async function deleteRepositoryFile(repository, path, branch, sha) {
   });
 }
 
+async function authorizeSignedPremium(hardwareId, client) {
+  const repository = licenseAuthority.repository;
+  const repositoryInfo = await api(
+    `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${encodeURIComponent(repository)}`
+  );
+  const branch = repositoryInfo.default_branch;
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const current = await readRepositoryFile(repository, files.full, branch);
+    const entries = parseList(current?.content || "");
+    const existing = entries.find(
+      entry => entry.hardwareId.toLowerCase() === hardwareId.toLowerCase()
+    );
+
+    if (existing) {
+      existing.comment = existing.comment || `Signed Premium: ${client}`;
+    } else {
+      entries.push({
+        hardwareId,
+        comment: `Signed Premium: ${client}`
+      });
+    }
+
+    const body = {
+      message: `Authorize signed Premium FULL ${hardwareId}`,
+      content: btoa(unescape(encodeURIComponent(serializeList(entries)))),
+      branch
+    };
+    if (current?.sha) body.sha = current.sha;
+
+    try {
+      await api(repositoryContentUrl(repository, files.full), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      break;
+    } catch (error) {
+      if (error.status !== 409 || attempt === 3) throw error;
+    }
+  }
+
+  for (let attempt = 1; attempt <= 10; attempt++) {
+    const verified = await readRepositoryFile(
+      repository,
+      files.full,
+      branch
+    );
+    const authorized = parseList(verified?.content || "").some(
+      entry => entry.hardwareId.toLowerCase() === hardwareId.toLowerCase()
+    );
+    if (authorized) return branch;
+    await delay(1000);
+  }
+
+  throw new Error(
+    `GitHub no confirmó el HWID en ${repository}/${files.full}. No se generó ninguna clave.`
+  );
+}
+
 const parseList = content => content.split(/\r?\n/).filter(Boolean).map(line => {
   const [hardwareId, comment = ""] = line.split("//", 2);
   return { hardwareId: hardwareId.trim(), comment: comment.trim() };
@@ -229,25 +293,12 @@ async function generateSignedLicense() {
 
   const requestId = crypto.randomUUID();
   $("generatedLicense").value = "";
-  status("Registrando Premium FULL y solicitando la firma...", "");
-
-  state.full = parseList((await readFile(files.full)).content);
-  const existing = state.full.find(
-    entry => entry.hardwareId.toLowerCase() === hardwareId.toLowerCase()
+  status(
+    `Autorizando el HWID en ${licenseAuthority.repository}...`,
+    ""
   );
-  if (existing) {
-    existing.comment = existing.comment || `Signed Premium: ${client}`;
-  } else {
-    state.full.push({
-      hardwareId,
-      comment: `Signed Premium: ${client}`
-    });
-  }
-  await writeFile(
-    files.full,
-    serializeList(state.full),
-    `Authorize signed Premium FULL ${hardwareId}`
-  );
+  const authorityBranch = await authorizeSignedPremium(hardwareId, client);
+  status("HWID autorizado. Solicitando la firma...", "");
 
   await api(
     `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${generator.repository}/actions/workflows/${generator.workflow}/dispatches`,
@@ -282,6 +333,22 @@ async function generateSignedLicense() {
     const result = JSON.parse(response.content);
     if (result.requestId !== requestId || !result.license) {
       throw new Error("GitHub Actions devolvió una respuesta inválida.");
+    }
+
+    const authorization = await readRepositoryFile(
+      licenseAuthority.repository,
+      files.full,
+      authorityBranch
+    );
+    const remainsAuthorized = parseList(
+      authorization?.content || ""
+    ).some(
+      entry => entry.hardwareId.toLowerCase() === hardwareId.toLowerCase()
+    );
+    if (!remainsAuthorized) {
+      throw new Error(
+        `El HWID dejó de estar autorizado en ${licenseAuthority.repository}. La clave no será entregada.`
+      );
     }
 
     $("generatedLicense").value = result.license;

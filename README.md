@@ -21,6 +21,11 @@ La pestana **Generar clave** emite licencias firmadas y ligadas al Hardware ID.
 La llave privada no se incluye en la web: GitHub Actions la recibe mediante el
 secret `SIGNED_LICENSE_PRIVATE_KEY`.
 
+La autoridad está fijada en `Launcher-Licenses`; `LicenseAdmin-Web` sólo
+ejecuta el workflow de firma. Antes de entregar una clave, la web añade el HWID
+a `Launcher-Licenses/Licenses.txt`, vuelve a leerlo para comprobar la
+autorización y repite la comprobación después de firmar.
+
 Configuracion inicial:
 
 1. Publica este repositorio con el workflow de `.github/workflows`.
