@@ -62,9 +62,16 @@ desde Premium FULL revoca la licencia firmada en la siguiente validación online
 - `FreeTrialDays.txt`
 - `ProductName.txt`
 
-`ProductName.txt` debe usar el formato `Software_Infamous-N`. Por ejemplo,
-`Software_Infamous-12` se convierte en nombre `Software_Infamous` y Product ID
-`#12#` para TrialMaker.
+`ProductName.txt` debe usar el formato `NOMBRE_PRODUCTO-N`. El nombre base
+acepta letras, numeros y guion bajo. Por ejemplo, `PROYECTO-1` se convierte en
+nombre `PROYECTO` y Product ID `#1#` para TrialMaker.
+
+El generador Premium FULL lee este archivo directamente desde el repositorio
+de licencias. El nombre base se envia al workflow como producto firmado y los
+guiones bajos se convierten en espacios. De esta forma,
+`Software_Infamous-15` firma para `Software Infamous`, mientras que
+`PROYECTO-1` firma para `PROYECTO`. El workflow no contiene un producto
+predeterminado.
 
 ## Actualización de datos
 

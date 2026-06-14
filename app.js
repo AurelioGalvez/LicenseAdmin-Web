@@ -244,13 +244,17 @@ const serializeTemporary = entries => entries
   .map(x => `${x.hardwareId}//${x.activationUtc}//${x.days}//${x.comment.replace(/[\r\n]/g, " ")}`).join("\n") + "\n";
 
 function parseProductIdentity(value) {
-  const match = /^Software_Infamous-([1-9][0-9]*)$/.exec(value.trim());
+  const match = /^([A-Za-z0-9_]+)-([1-9][0-9]*)$/.exec(value.trim());
   if (!match) {
     throw new Error(
-      "ProductName debe usar el formato Software_Infamous-N, por ejemplo Software_Infamous-12."
+      "ProductName debe usar el formato NOMBRE_PRODUCTO-N, por ejemplo PROYECTO-1."
     );
   }
-  return { name: "Software_Infamous", id: `#${match[1]}#` };
+  return {
+    name: match[1],
+    signedProduct: match[1].replace(/_/g, " "),
+    id: `#${match[2]}#`
+  };
 }
 
 function updateProductIdPreview() {
@@ -259,6 +263,20 @@ function updateProductIdPreview() {
   } catch {
     $("productIdPreview").value = "Formato inválido";
   }
+}
+
+async function loadGeneratorProduct() {
+  const remote = await readFile(files.productName);
+  if (!remote.content.trim()) {
+    $("generatorProduct").value = "";
+    throw new Error(
+      `${files.productName} no existe o esta vacio en ${licenseAuthority.repository}.`
+    );
+  }
+
+  const identity = parseProductIdentity(remote.content);
+  $("generatorProduct").value = identity.signedProduct;
+  return identity.signedProduct;
 }
 
 async function loadFull() {
@@ -284,12 +302,11 @@ async function generateSignedLicense() {
   requireConnection();
   const hardwareId = $("generatorHwid").value.trim();
   const client = $("generatorClient").value.trim();
-  const product = $("generatorProduct").value.trim();
+  const product = await loadGeneratorProduct();
   if (!/^[A-Za-z0-9-]{10,200}$/.test(hardwareId)) {
     throw new Error("Introduce un Hardware ID válido.");
   }
   if (!client) throw new Error("Introduce el nombre del cliente.");
-  if (!product) throw new Error("Introduce el producto.");
 
   const requestId = crypto.randomUUID();
   $("generatedLicense").value = "";
@@ -444,7 +461,11 @@ async function loadFree() {
   const [enabled, days, product] = await Promise.all([readFile(files.freeEnabled), readFile(files.freeDays), readFile(files.productName)]);
   $("freeEnabled").checked = enabled.content.trim().toLowerCase() === "true";
   $("freeDays").value = Number(days.content.trim()) || 7;
-  if (product.content.trim()) $("productName").value = product.content.trim();
+  if (product.content.trim()) {
+    $("productName").value = product.content.trim();
+    $("generatorProduct").value =
+      parseProductIdentity(product.content).signedProduct;
+  }
   updateProductIdPreview();
   status("Configuración FreeTrial cargada.", "success");
 }
@@ -504,7 +525,10 @@ async function loadActivePanel() {
   const active = document.querySelector(".panel.active").id;
   const loaders = {
     full: loadFull,
-    generator: async () => status("Generador Premium FULL listo.", "success"),
+    generator: async () => {
+      const product = await loadGeneratorProduct();
+      status(`Generador Premium FULL listo para ${product}.`, "success");
+    },
     temporary: loadTemporary,
     premiumFree: loadPremiumFree,
     freeTrial: loadFree

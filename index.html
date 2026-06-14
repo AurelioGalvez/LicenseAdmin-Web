@@ -65,7 +65,10 @@
       <div class="editor generator-editor">
         <div class="field"><label for="generatorHwid">Hardware ID</label><input id="generatorHwid"></div>
         <div class="field"><label for="generatorClient">Cliente</label><input id="generatorClient"></div>
-        <div class="field"><label for="generatorProduct">Producto</label><input id="generatorProduct" value="Software Infamous"></div>
+        <div class="field">
+          <label for="generatorProduct">Producto base de ProductName.txt</label>
+          <input id="generatorProduct" readonly placeholder="Se cargara desde ProductName.txt">
+        </div>
         <button class="primary" data-action="generate-license">Generar licencia</button>
       </div>
       <div class="field license-output">
@@ -115,7 +118,7 @@
       <div class="settings-row">
         <label class="check"><input id="freeEnabled" type="checkbox"> Permitir nuevas FreeTrial</label>
         <div class="field compact"><label for="freeDays">Días</label><input id="freeDays" type="number" min="1" max="3650" value="7"></div>
-        <div class="field"><label for="productName">ProductName</label><input id="productName" value="Software_Infamous-1"></div>
+        <div class="field"><label for="productName">ProductName</label><input id="productName" value="MI_PRODUCTO-1"></div>
         <div class="field"><label for="productIdPreview">Product ID de TrialMaker</label><input id="productIdPreview" value="#1#" readonly></div>
         <button class="primary" data-action="save-free">Guardar</button>
         <button class="refresh" data-action="load-free">Actualizar</button>

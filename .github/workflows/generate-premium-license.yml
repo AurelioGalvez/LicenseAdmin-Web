@@ -20,7 +20,6 @@ on:
       product:
         description: Product name
         required: true
-        default: Software Infamous
         type: string
 
 permissions:
