@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; connect-src https://api.github.com; img-src 'self'; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Software Infamous License Admin</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">SOFTWARE INFAMOUS</p>
+      <h1>License Admin</h1>
+      <p class="subtitle">Administración unificada de licencias desde GitHub.</p>
+    </div>
+    <span id="connectionBadge" class="badge">Sin conexión</span>
+  </header>
+
+  <main>
+    <section class="card connection">
+      <div class="field"><label for="owner">Propietario</label><input id="owner" value="AurelioGalvez"></div>
+      <div class="field"><label for="repository">Repositorio</label><input id="repository" value="Launcher-Licenses"></div>
+      <div class="field"><label for="branch">Rama</label><input id="branch" value="main"></div>
+      <div class="field token-field">
+        <label for="token">Fine-grained token</label>
+        <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_...">
+      </div>
+      <button id="connect" class="primary">Conectar</button>
+      <p class="security-note">El token permanece en memoria. No se guarda en cookies, localStorage ni archivos.</p>
+    </section>
+
+    <nav class="tabs" aria-label="Tipos de licencia">
+      <button class="tab active" data-panel="full">Premium FULL</button>
+      <button class="tab" data-panel="temporary">Premium temporal</button>
+      <button class="tab" data-panel="premiumFree">Premium-Free</button>
+      <button class="tab" data-panel="freeTrial">FreeTrial</button>
+    </nav>
+
+    <section id="full" class="panel card active">
+      <div class="panel-heading">
+        <div><h2>Premium FULL</h2><p>Autorizaciones permanentes de <code>Licenses.txt</code>.</p></div>
+        <button class="refresh" data-action="load-full">Actualizar</button>
+      </div>
+      <div class="editor three">
+        <div class="field"><label for="fullHwid">Hardware ID</label><input id="fullHwid"></div>
+        <div class="field"><label for="fullComment">Comentario</label><input id="fullComment"></div>
+        <button class="primary" data-action="save-full">Agregar / actualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Hardware ID</th><th>Comentario</th><th></th></tr></thead><tbody id="fullRows"></tbody></table>
+      </div>
+    </section>
+
+    <section id="temporary" class="panel card">
+      <div class="panel-heading">
+        <div><h2>Premium temporal por HWID</h2><p>Acceso Premium individual con fecha y duración propias.</p></div>
+        <button class="refresh" data-action="load-temporary">Actualizar</button>
+      </div>
+      <div class="settings-row">
+        <label class="check"><input id="tempEnabled" type="checkbox"> Sistema habilitado</label>
+        <div class="field compact"><label for="tempDefaultDays">Días predeterminados</label><input id="tempDefaultDays" type="number" min="1" max="3650" value="7"></div>
+        <button data-action="save-temp-config">Guardar configuración</button>
+      </div>
+      <div class="editor temporary-editor">
+        <div class="field"><label for="tempHwid">Hardware ID</label><input id="tempHwid"></div>
+        <div class="field"><label for="tempComment">Comentario</label><input id="tempComment"></div>
+        <div class="field compact"><label for="tempDays">Días</label><input id="tempDays" type="number" min="1" max="3650" value="7"></div>
+        <label class="check"><input id="tempRestart" type="checkbox"> Reiniciar desde ahora</label>
+        <button class="primary" data-action="save-temporary">Agregar / actualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Hardware ID</th><th>Activación UTC</th><th>Días</th><th>Expiración UTC</th><th>Comentario</th><th></th></tr></thead><tbody id="tempRows"></tbody></table>
+      </div>
+    </section>
+
+    <section id="premiumFree" class="panel card">
+      <div class="panel-heading"><div><h2>Premium-Free global</h2><p>FreeTrial local con todas las funciones Premium.</p></div></div>
+      <div class="settings-row">
+        <label class="check"><input id="premiumFreeEnabled" type="checkbox"> Permitir Premium-Free</label>
+        <div class="field compact"><label for="premiumFreeDays">Días</label><input id="premiumFreeDays" type="number" min="1" max="3650" value="7"></div>
+        <button class="primary" data-action="save-premium-free">Guardar</button>
+        <button class="refresh" data-action="load-premium-free">Actualizar</button>
+      </div>
+    </section>
+
+    <section id="freeTrial" class="panel card">
+      <div class="panel-heading"><div><h2>FreeTrial normal</h2><p>Prueba local limitada y control de identidad de producto.</p></div></div>
+      <div class="settings-row">
+        <label class="check"><input id="freeEnabled" type="checkbox"> Permitir nuevas FreeTrial</label>
+        <div class="field compact"><label for="freeDays">Días</label><input id="freeDays" type="number" min="1" max="3650" value="7"></div>
+        <div class="field"><label for="productName">ProductName</label><input id="productName" value="Software_Infamous-1"></div>
+        <button class="primary" data-action="save-free">Guardar</button>
+        <button class="refresh" data-action="load-free">Actualizar</button>
+      </div>
+    </section>
+
+    <div id="status" role="status" aria-live="polite">Introduce el token para comenzar.</div>
+  </main>
+
+  <dialog id="confirmDialog">
+    <h3>Confirmar eliminación</h3>
+    <p id="confirmText"></p>
+    <div class="dialog-actions"><button id="cancelDelete">Cancelar</button><button id="confirmDelete" class="danger">Eliminar</button></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
