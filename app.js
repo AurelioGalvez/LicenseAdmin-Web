@@ -37,15 +37,19 @@ function contentUrl(path) {
 }
 
 async function api(url, options = {}) {
-  const response = await fetch(url, {
-    cache: "no-store",
-    ...options,
-    headers: {
-      ...apiHeaders(),
-      "Cache-Control": "no-cache",
-      ...(options.headers || {})
-    }
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      cache: "no-store",
+      ...options,
+      headers: {
+        ...apiHeaders(),
+        ...(options.headers || {})
+      }
+    });
+  } catch {
+    throw new Error("No se pudo conectar con la API de GitHub. Comprueba la conexión y recarga la página.");
+  }
   const text = await response.text();
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
@@ -77,13 +81,15 @@ async function readFile(path) {
     ref: state.branch,
     _: `${Date.now()}-${Math.random()}`
   });
-  const response = await fetch(`${contentUrl(path)}?${query}`, {
-    cache: "no-store",
-    headers: {
-      ...apiHeaders(),
-      "Cache-Control": "no-cache"
-    }
-  });
+  let response;
+  try {
+    response = await fetch(`${contentUrl(path)}?${query}`, {
+      cache: "no-store",
+      headers: apiHeaders()
+    });
+  } catch {
+    throw new Error("No se pudo leer GitHub. Comprueba la conexión y recarga la página.");
+  }
   if (response.status === 404) return { content: "", sha: null };
   const data = await response.json();
   if (!response.ok) throw new Error(`GitHub ${response.status}: ${data.message || response.statusText}`);
