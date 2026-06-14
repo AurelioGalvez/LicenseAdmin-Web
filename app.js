@@ -37,11 +37,23 @@ function contentUrl(path) {
 }
 
 async function api(url, options = {}) {
-  const response = await fetch(url, { ...options, headers: { ...apiHeaders(), ...(options.headers || {}) } });
+  const response = await fetch(url, {
+    cache: "no-store",
+    ...options,
+    headers: {
+      ...apiHeaders(),
+      "Cache-Control": "no-cache",
+      ...(options.headers || {})
+    }
+  });
   const text = await response.text();
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
-  if (!response.ok) throw new Error(`GitHub ${response.status}: ${data.message || response.statusText}`);
+  if (!response.ok) {
+    const error = new Error(`GitHub ${response.status}: ${data.message || response.statusText}`);
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
 
@@ -61,7 +73,17 @@ async function connect() {
 
 async function readFile(path) {
   requireConnection();
-  const response = await fetch(`${contentUrl(path)}?ref=${encodeURIComponent(state.branch)}`, { headers: apiHeaders() });
+  const query = new URLSearchParams({
+    ref: state.branch,
+    _: `${Date.now()}-${Math.random()}`
+  });
+  const response = await fetch(`${contentUrl(path)}?${query}`, {
+    cache: "no-store",
+    headers: {
+      ...apiHeaders(),
+      "Cache-Control": "no-cache"
+    }
+  });
   if (response.status === 404) return { content: "", sha: null };
   const data = await response.json();
   if (!response.ok) throw new Error(`GitHub ${response.status}: ${data.message || response.statusText}`);
@@ -69,14 +91,25 @@ async function readFile(path) {
 }
 
 async function writeFile(path, content, message) {
-  const current = await readFile(path);
-  const body = { message, content: btoa(unescape(encodeURIComponent(content))), branch: state.branch };
-  if (current.sha) body.sha = current.sha;
-  await api(contentUrl(path), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
+  const encodedContent = btoa(unescape(encodeURIComponent(content)));
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const current = await readFile(path);
+    const body = { message, content: encodedContent, branch: state.branch };
+    if (current.sha) body.sha = current.sha;
+
+    try {
+      return await api(contentUrl(path), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+    } catch (error) {
+      if (error.status !== 409 || attempt === 3) throw error;
+    }
+  }
+
+  throw new Error(`No se pudo actualizar ${path} despues de varios intentos.`);
 }
 
 const parseList = content => content.split(/\r?\n/).filter(Boolean).map(line => {
@@ -146,7 +179,8 @@ async function saveTempConfig() {
     writeFile(files.tempEnabled, `${$("tempEnabled").checked ? "True" : "False"}\n`, "Update Premium HWID enabled state"),
     writeFile(files.tempDefaultDays, `${validDays("tempDefaultDays")}\n`, "Update Premium HWID default duration")
   ]);
-  status("Configuración Premium temporal guardada.", "success");
+  await loadTemporary();
+  status("Configuración Premium temporal guardada y verificada.", "success");
 }
 
 async function saveTemporary() {
@@ -179,7 +213,8 @@ async function savePremiumFree() {
     writeFile(files.premiumFreeEnabled, `${$("premiumFreeEnabled").checked ? "True" : "False"}\n`, "Update Premium-Free enabled state"),
     writeFile(files.premiumFreeDays, `${validDays("premiumFreeDays")}\n`, "Update Premium-Free duration")
   ]);
-  status("Premium-Free actualizado.", "success");
+  await loadPremiumFree();
+  status("Premium-Free actualizado y verificado.", "success");
 }
 
 async function loadFree() {
@@ -197,7 +232,8 @@ async function saveFree() {
     writeFile(files.freeDays, `${validDays("freeDays")}\n`, "Update FreeTrial duration"),
     writeFile(files.productName, `${product}\n`, "Update license ProductName")
   ]);
-  status("FreeTrial actualizado.", "success");
+  await loadFree();
+  status("FreeTrial actualizado y verificado.", "success");
 }
 
 function validDays(id) {
