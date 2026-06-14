@@ -35,6 +35,10 @@ token dentro de `app.js`.
 - `FreeTrialDays.txt`
 - `ProductName.txt`
 
+`ProductName.txt` debe usar el formato `Software_Infamous-N`. Por ejemplo,
+`Software_Infamous-12` se convierte en nombre `Software_Infamous` y Product ID
+`#12#` para TrialMaker.
+
 ## Actualización de datos
 
 Las escrituras se realizan directamente mediante la API de GitHub. La
