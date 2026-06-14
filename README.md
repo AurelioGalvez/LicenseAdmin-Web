@@ -62,16 +62,17 @@ desde Premium FULL revoca la licencia firmada en la siguiente validación online
 - `FreeTrialDays.txt`
 - `ProductName.txt`
 
-`ProductName.txt` debe usar el formato `NOMBRE_PRODUCTO-N`. El nombre base
-acepta letras, numeros y guion bajo. TrialMaker usa el valor completo como
-identidad de campana: `PROYECTO-1` usa el nombre `PROYECTO-1` y el Product ID
-`#1#`. Cambiar el numero crea una campana local independiente.
+`ProductName.txt` debe usar el formato `NOMBRE_PRODUCTO-ID`. El nombre base
+acepta letras, numeros y guion bajo; el ID admite versiones numericas.
+`PROYECTO_NUEVO-1.0.0` produce el nombre logico `PROYECTO_NUEVO` y el Product
+ID `#1.0.0#`. TrialMaker conserva internamente el valor completo como clave de
+campana para que cada ID tenga un Proof-of-Use independiente.
 
 El generador Premium FULL lee este archivo directamente desde el repositorio
 de licencias. El nombre base se envia al workflow como producto firmado y los
 guiones bajos se convierten en espacios. De esta forma,
 `Software_Infamous-15` firma para `Software Infamous`, mientras que
-`PROYECTO-1` firma para `PROYECTO`. El workflow no contiene un producto
+`PROYECTO_NUEVO-1.0.0` firma para `PROYECTO NUEVO`. El workflow no contiene un producto
 predeterminado.
 
 ## Actualización de datos

@@ -244,10 +244,10 @@ const serializeTemporary = entries => entries
   .map(x => `${x.hardwareId}//${x.activationUtc}//${x.days}//${x.comment.replace(/[\r\n]/g, " ")}`).join("\n") + "\n";
 
 function parseProductIdentity(value) {
-  const match = /^([A-Za-z0-9_]+)-([1-9][0-9]*)$/.exec(value.trim());
+  const match = /^([A-Za-z0-9_]+)-([1-9][0-9]*(?:\.[0-9]+)*)$/.exec(value.trim());
   if (!match) {
     throw new Error(
-      "ProductName debe usar el formato NOMBRE_PRODUCTO-N, por ejemplo PROYECTO-1."
+      "ProductName debe usar el formato NOMBRE_PRODUCTO-ID, por ejemplo PROYECTO_NUEVO-1.0.0."
     );
   }
   return {
@@ -261,9 +261,11 @@ function parseProductIdentity(value) {
 function updateProductIdentityPreview() {
   try {
     const identity = parseProductIdentity($("productName").value);
+    $("productBasePreview").value = identity.name;
     $("trialNamePreview").value = identity.trialName;
     $("productIdPreview").value = identity.id;
   } catch {
+    $("productBasePreview").value = "Formato invalido";
     $("trialNamePreview").value = "Formato invalido";
     $("productIdPreview").value = "Formato inválido";
   }
