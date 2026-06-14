@@ -252,15 +252,19 @@ function parseProductIdentity(value) {
   }
   return {
     name: match[1],
+    trialName: value.trim(),
     signedProduct: match[1].replace(/_/g, " "),
     id: `#${match[2]}#`
   };
 }
 
-function updateProductIdPreview() {
+function updateProductIdentityPreview() {
   try {
-    $("productIdPreview").value = parseProductIdentity($("productName").value).id;
+    const identity = parseProductIdentity($("productName").value);
+    $("trialNamePreview").value = identity.trialName;
+    $("productIdPreview").value = identity.id;
   } catch {
+    $("trialNamePreview").value = "Formato invalido";
     $("productIdPreview").value = "Formato inválido";
   }
 }
@@ -466,7 +470,7 @@ async function loadFree() {
     $("generatorProduct").value =
       parseProductIdentity(product.content).signedProduct;
   }
-  updateProductIdPreview();
+  updateProductIdentityPreview();
   status("Configuración FreeTrial cargada.", "success");
 }
 async function saveFree() {
@@ -559,6 +563,6 @@ document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("cl
 $("connect").addEventListener("click", () => run(connect));
 $("cancelDelete").addEventListener("click", () => $("confirmDialog").close());
 $("confirmDelete").addEventListener("click", () => run(confirmDelete));
-$("productName").addEventListener("input", updateProductIdPreview);
-updateProductIdPreview();
+$("productName").addEventListener("input", updateProductIdentityPreview);
+updateProductIdentityPreview();
 window.addEventListener("pagehide", () => { state.token = ""; $("token").value = ""; });

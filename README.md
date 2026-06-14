@@ -63,8 +63,9 @@ desde Premium FULL revoca la licencia firmada en la siguiente validación online
 - `ProductName.txt`
 
 `ProductName.txt` debe usar el formato `NOMBRE_PRODUCTO-N`. El nombre base
-acepta letras, numeros y guion bajo. Por ejemplo, `PROYECTO-1` se convierte en
-nombre `PROYECTO` y Product ID `#1#` para TrialMaker.
+acepta letras, numeros y guion bajo. TrialMaker usa el valor completo como
+identidad de campana: `PROYECTO-1` usa el nombre `PROYECTO-1` y el Product ID
+`#1#`. Cambiar el numero crea una campana local independiente.
 
 El generador Premium FULL lee este archivo directamente desde el repositorio
 de licencias. El nombre base se envia al workflow como producto firmado y los
