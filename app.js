@@ -140,6 +140,24 @@ const serializeTemporary = entries => entries
   .sort((a, b) => a.hardwareId.localeCompare(b.hardwareId))
   .map(x => `${x.hardwareId}//${x.activationUtc}//${x.days}//${x.comment.replace(/[\r\n]/g, " ")}`).join("\n") + "\n";
 
+function parseProductIdentity(value) {
+  const match = /^Software_Infamous-([1-9][0-9]*)$/.exec(value.trim());
+  if (!match) {
+    throw new Error(
+      "ProductName debe usar el formato Software_Infamous-N, por ejemplo Software_Infamous-12."
+    );
+  }
+  return { name: "Software_Infamous", id: `#${match[1]}#` };
+}
+
+function updateProductIdPreview() {
+  try {
+    $("productIdPreview").value = parseProductIdentity($("productName").value).id;
+  } catch {
+    $("productIdPreview").value = "Formato inválido";
+  }
+}
+
 async function loadFull() {
   state.full = parseList((await readFile(files.full)).content);
   $("fullRows").replaceChildren(...state.full.map(entry => row([
@@ -228,11 +246,12 @@ async function loadFree() {
   $("freeEnabled").checked = enabled.content.trim().toLowerCase() === "true";
   $("freeDays").value = Number(days.content.trim()) || 7;
   if (product.content.trim()) $("productName").value = product.content.trim();
+  updateProductIdPreview();
   status("Configuración FreeTrial cargada.", "success");
 }
 async function saveFree() {
   const product = $("productName").value.trim();
-  if (!product) throw new Error("ProductName no puede estar vacío.");
+  parseProductIdentity(product);
   await Promise.all([
     writeFile(files.freeEnabled, `${$("freeEnabled").checked ? "True" : "False"}\n`, "Update FreeTrial enabled state"),
     writeFile(files.freeDays, `${validDays("freeDays")}\n`, "Update FreeTrial duration"),
@@ -309,4 +328,6 @@ document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("cl
 $("connect").addEventListener("click", () => run(connect));
 $("cancelDelete").addEventListener("click", () => $("confirmDialog").close());
 $("confirmDelete").addEventListener("click", () => run(confirmDelete));
+$("productName").addEventListener("input", updateProductIdPreview);
+updateProductIdPreview();
 window.addEventListener("pagehide", () => { state.token = ""; $("token").value = ""; });
