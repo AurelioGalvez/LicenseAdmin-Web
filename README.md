@@ -34,3 +34,13 @@ token dentro de `app.js`.
 - `EnableFreeTrial.txt`
 - `FreeTrialDays.txt`
 - `ProductName.txt`
+
+## Actualización de datos
+
+Las escrituras se realizan directamente mediante la API de GitHub. La
+aplicación evita la caché del navegador, obtiene el SHA más reciente antes de
+cada escritura y reintenta automáticamente los conflictos `409`.
+
+Después de guardar una configuración, la sección vuelve a leer los archivos
+desde GitHub para confirmar los valores persistidos. Los cambios en los
+archivos de licencia no requieren volver a desplegar GitHub Pages.
