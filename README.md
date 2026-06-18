@@ -80,22 +80,24 @@ desde Premium FULL revoca la licencia firmada en la siguiente validación online
 - `PremiumFreeEnabled.txt`
 - `PremiumFreeDays.txt`
 - `PremiumFreeAcquisitionUntilUtc.txt`
+- `PremiumFreeProductName.txt`
 - `EnableFreeTrial.txt`
 - `FreeTrialDays.txt`
 - `FreeTrialAcquisitionUntilUtc.txt`
 - `ProductName.txt`
-- `LiveNotification.json`
 
 Las fechas de adquisicion usan `yyyy-MM-dd` y son inclusivas en UTC. Un archivo
 vacio no impone fecha limite. El vencimiento bloquea solamente nuevas
 adquisiciones; las licencias activas siguen funcionando mientras su modalidad
 permanezca habilitada.
 
-## Discord y notificaciones
+Free y Premium-Free tienen ProductName, Product ID y clave TrialMaker propios.
+El nombre canónico de Software Infamous se combina con el modo y la campaña:
+`Software_Infamous_FREE_<CAMPANA>` o
+`Software_Infamous_PREMIUM_FREE_<CAMPANA>`. El panel muestra esa clave final
+antes de guardar y ambas configuraciones pueden cambiarse independientemente.
 
-La pestana **Comunicaciones** publica `LiveNotification.json`. Los clientes
-abiertos consultan el archivo cada 30 segundos y muestran cada ID una sola vez
-por sesion. El aviso admite tipo, titulo, mensaje y expiracion UTC.
+## Discord
 
 El emisor Discord admite Markdown e imagen/GIF por URL. La URL completa de cada
 webhook se almacena una sola vez como secreto cifrado de GitHub Actions y nunca
@@ -160,7 +162,3 @@ interna de campaña. Así una campaña Premium-Free no depende de FreeTrial.
 Las escrituras se encolan, incluso cuando una pantalla guarda varios archivos,
 para evitar el conflicto de rama que antes mostraba un error después de cambiar
 ProductName aunque GitHub sí hubiera creado el commit.
-
-Las notificaciones en vivo se conservan. Software Infamous renueva únicamente
-la URL de `LiveNotification.json` cada 30 segundos; la validación de licencias
-no usa ese parámetro. `publishedUtc` permite volver a publicar el mismo ID.

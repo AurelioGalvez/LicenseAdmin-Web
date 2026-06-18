@@ -15,6 +15,7 @@ const discord = {
 const licenseAuthority = {
   repository: "Launcher-Licenses"
 };
+const trialApplicationName = "Software_Infamous";
 let writeQueue = Promise.resolve();
 const files = {
   full: "Licenses.txt",
@@ -28,8 +29,7 @@ const files = {
   freeEnabled: "EnableFreeTrial.txt",
   freeDays: "FreeTrialDays.txt",
   freeUntil: "FreeTrialAcquisitionUntilUtc.txt",
-  productName: "ProductName.txt",
-  liveNotification: "LiveNotification.json"
+  productName: "ProductName.txt"
 };
 
 function status(message, type = "") {
@@ -275,11 +275,11 @@ function parseProductIdentity(value) {
   };
 }
 
-function updateIdentityPreview(inputId, baseId, trialNameId, productIdId) {
+function updateIdentityPreview(inputId, baseId, trialNameId, productIdId, mode) {
   try {
     const identity = parseProductIdentity($(inputId).value);
     $(baseId).value = identity.name;
-    $(trialNameId).value = identity.trialName;
+    $(trialNameId).value = `${trialApplicationName}_${mode}_${identity.trialName}`;
     $(productIdId).value = identity.id;
   } catch {
     $(baseId).value = "Formato invalido";
@@ -289,10 +289,10 @@ function updateIdentityPreview(inputId, baseId, trialNameId, productIdId) {
 }
 
 const updateProductIdentityPreview = () => updateIdentityPreview(
-  "productName", "productBasePreview", "trialNamePreview", "productIdPreview");
+  "productName", "productBasePreview", "trialNamePreview", "productIdPreview", "FREE");
 const updatePremiumFreeIdentityPreview = () => updateIdentityPreview(
   "premiumFreeProductName", "premiumFreeBasePreview",
-  "premiumFreeTrialNamePreview", "premiumFreeProductIdPreview");
+  "premiumFreeTrialNamePreview", "premiumFreeProductIdPreview", "PREMIUM_FREE");
 
 async function loadGeneratorProduct() {
   const remote = await readFile(files.productName);
@@ -544,57 +544,6 @@ function validDate(id) {
   return value;
 }
 
-async function loadLiveNotification() {
-  const remote = await readFile(files.liveNotification);
-  let notice = {};
-  if (remote.content.trim()) {
-    try { notice = JSON.parse(remote.content); } catch { throw new Error("LiveNotification.json no contiene JSON valido."); }
-  }
-  $("liveEnabled").checked = notice.enabled === true;
-  $("liveType").value = ["info", "success", "warning", "error"].includes(notice.type) ? notice.type : "info";
-  $("liveTitle").value = notice.title || "";
-  $("liveMessage").value = notice.message || "";
-  $("liveExpires").value = notice.expiresUtc ? String(notice.expiresUtc).slice(0, 16) : "";
-  status("Notificacion en directo cargada.", "success");
-}
-
-async function publishLiveNotification() {
-  const message = $("liveMessage").value.trim();
-  if (!message) throw new Error("Escribe el mensaje de la notificacion.");
-  const expires = $("liveExpires").value;
-  const notice = {
-    id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
-    enabled: $("liveEnabled").checked,
-    type: $("liveType").value,
-    title: $("liveTitle").value.trim(),
-    message,
-    publishedUtc: new Date().toISOString(),
-    expiresUtc: expires ? `${expires}:00Z` : null
-  };
-  await writeFile(files.liveNotification, `${JSON.stringify(notice, null, 2)}\n`, "Publish live client notification");
-  await loadLiveNotification();
-  status("Notificacion publicada para los clientes abiertos.", "success");
-}
-
-async function disableLiveNotification() {
-  const remote = await readFile(files.liveNotification);
-  let notice = {};
-  try { notice = remote.content.trim() ? JSON.parse(remote.content) : {}; } catch { notice = {}; }
-  notice.enabled = false;
-  notice.updatedUtc = new Date().toISOString();
-  await writeFile(files.liveNotification, `${JSON.stringify(notice, null, 2)}\n`, "Disable live client notification");
-  await loadLiveNotification();
-}
-
-function clearLiveNotificationForm() {
-  $("liveEnabled").checked = false;
-  $("liveType").value = "info";
-  $("liveTitle").value = "";
-  $("liveExpires").value = "";
-  $("liveMessage").value = "";
-  status("Campos de la notificacion en directo limpiados.", "success");
-}
-
 async function sendDiscordWebhook() {
   requireConnection();
   const content = $("discordMessage").value.trim();
@@ -724,7 +673,7 @@ async function loadActivePanel() {
     temporary: loadTemporary,
     premiumFree: loadPremiumFree,
     freeTrial: loadFree,
-    communications: loadLiveNotification
+    communications: async () => status("Comunicaciones de Discord listas.", "success")
   };
   return loaders[active]();
 }
@@ -747,8 +696,6 @@ const actions = {
   "load-temporary": loadTemporary, "save-temp-config": saveTempConfig, "save-temporary": saveTemporary,
   "load-premium-free": loadPremiumFree, "save-premium-free": savePremiumFree,
   "load-free": loadFree, "save-free": saveFree,
-  "load-live": loadLiveNotification, "publish-live": publishLiveNotification,
-  "disable-live": disableLiveNotification, "clear-live": clearLiveNotificationForm,
   "send-discord": sendDiscordWebhook, "clear-discord": clearDiscordForm
 };
 document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", () => run(actions[el.dataset.action])));

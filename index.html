@@ -113,7 +113,7 @@
         <div class="field"><label for="premiumFreeProductName">ProductName</label><input id="premiumFreeProductName" value="SOFTWARE_INFAMOUS_PREMIUM_FREE-1.0.0"></div>
         <div class="field"><label for="premiumFreeBasePreview">Nombre</label><input id="premiumFreeBasePreview" value="SOFTWARE_INFAMOUS_PREMIUM_FREE" readonly></div>
         <div class="field"><label for="premiumFreeProductIdPreview">Product ID de TrialMaker</label><input id="premiumFreeProductIdPreview" value="#1.0.0#" readonly></div>
-        <div class="field"><label for="premiumFreeTrialNamePreview">Clave interna de campana</label><input id="premiumFreeTrialNamePreview" value="SOFTWARE_INFAMOUS_PREMIUM_FREE-1.0.0" readonly></div>
+        <div class="field"><label for="premiumFreeTrialNamePreview">Clave interna TrialMaker</label><input id="premiumFreeTrialNamePreview" value="Software_Infamous_PREMIUM_FREE_SOFTWARE_INFAMOUS_PREMIUM_FREE-1.0.0" readonly></div>
         <button class="primary" data-action="save-premium-free">Guardar</button>
         <button class="refresh" data-action="load-premium-free">Actualizar</button>
       </div>
@@ -128,29 +128,14 @@
         <div class="field"><label for="productName">ProductName</label><input id="productName" value="PROYECTO_NUEVO-1.0.0"></div>
         <div class="field"><label for="productBasePreview">Nombre</label><input id="productBasePreview" value="PROYECTO_NUEVO" readonly></div>
         <div class="field"><label for="productIdPreview">Product ID de TrialMaker</label><input id="productIdPreview" value="#1.0.0#" readonly></div>
-        <div class="field"><label for="trialNamePreview">Clave interna de campana</label><input id="trialNamePreview" value="PROYECTO_NUEVO-1.0.0" readonly></div>
+        <div class="field"><label for="trialNamePreview">Clave interna TrialMaker</label><input id="trialNamePreview" value="Software_Infamous_FREE_PROYECTO_NUEVO-1.0.0" readonly></div>
         <button class="primary" data-action="save-free">Guardar</button>
         <button class="refresh" data-action="load-free">Actualizar</button>
       </div>
     </section>
 
     <section id="communications" class="panel card">
-      <div class="panel-heading"><div><h2>Comunicaciones</h2><p>Discord y avisos para clientes abiertos.</p></div></div>
-      <div class="communication-block">
-        <h3>Notificacion en directo</h3>
-        <p class="security-note">Software Infamous consulta este aviso periodicamente desde Launcher-Licenses.</p>
-        <div class="settings-row communication-grid">
-          <label class="check"><input id="liveEnabled" type="checkbox"> Aviso habilitado</label>
-          <div class="field"><label for="liveType">Tipo</label><select id="liveType"><option value="info">Informacion</option><option value="success">Exito</option><option value="warning">Advertencia</option><option value="error">Error</option></select></div>
-          <div class="field"><label for="liveTitle">Titulo</label><input id="liveTitle" maxlength="120" placeholder="Actualizacion disponible"></div>
-          <div class="field"><label for="liveExpires">Expira (UTC, opcional)</label><input id="liveExpires" type="datetime-local"></div>
-          <div class="field wide"><label for="liveMessage">Mensaje</label><textarea id="liveMessage" maxlength="1500" placeholder="Reinicia el proyecto para adquirir una nueva actualizacion."></textarea></div>
-          <button class="primary" data-action="publish-live">Publicar aviso</button>
-          <button data-action="disable-live">Deshabilitar</button>
-          <button data-action="clear-live">Limpiar campos</button>
-          <button class="refresh" data-action="load-live">Actualizar</button>
-        </div>
-      </div>
+      <div class="panel-heading"><div><h2>Comunicaciones</h2><p>Mensajes enviados mediante Discord.</p></div></div>
       <div class="communication-block">
         <h3>Discord</h3>
         <p class="security-note">El webhook permanece protegido como secreto de GitHub Actions y nunca se envia al navegador.</p>
