@@ -561,6 +561,15 @@ async function disableLiveNotification() {
   await loadLiveNotification();
 }
 
+function clearLiveNotificationForm() {
+  $("liveEnabled").checked = false;
+  $("liveType").value = "info";
+  $("liveTitle").value = "";
+  $("liveExpires").value = "";
+  $("liveMessage").value = "";
+  status("Campos de la notificacion en directo limpiados.", "success");
+}
+
 async function sendDiscordWebhook() {
   requireConnection();
   const content = $("discordMessage").value.trim();
@@ -614,6 +623,15 @@ async function sendDiscordWebhook() {
     return;
   }
   throw new Error("GitHub Actions no confirmo el envio dentro del tiempo esperado.");
+}
+
+function clearDiscordForm() {
+  $("discordChannel").value = "announcements";
+  $("discordUsername").value = "";
+  $("discordAvatar").value = "";
+  $("discordMessage").value = "";
+  $("discordImage").value = "";
+  status("Campos de Discord limpiados.", "success");
 }
 
 const discordFormats = {
@@ -705,7 +723,8 @@ const actions = {
   "load-premium-free": loadPremiumFree, "save-premium-free": savePremiumFree,
   "load-free": loadFree, "save-free": saveFree,
   "load-live": loadLiveNotification, "publish-live": publishLiveNotification,
-  "disable-live": disableLiveNotification, "send-discord": sendDiscordWebhook
+  "disable-live": disableLiveNotification, "clear-live": clearLiveNotificationForm,
+  "send-discord": sendDiscordWebhook, "clear-discord": clearDiscordForm
 };
 document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", () => run(actions[el.dataset.action])));
 $("connect").addEventListener("click", () => run(connect));

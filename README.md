@@ -120,7 +120,9 @@ Uso:
 
 Para un aviso del cliente, completa tipo, titulo, mensaje y expiracion UTC,
 marca **Aviso habilitado** y pulsa **Publicar aviso**. **Deshabilitar** conserva
-el contenido pero impide que nuevas consultas lo muestren.
+el contenido pero impide que nuevas consultas lo muestren. **Limpiar campos**
+restaura el formulario live o Discord a sus valores iniciales sin publicar ni
+enviar cambios.
 
 `ProductName.txt` debe usar el formato `NOMBRE_PRODUCTO-ID`. El nombre base
 acepta letras, numeros y guion bajo; el ID admite versiones numericas.
