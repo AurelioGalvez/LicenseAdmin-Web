@@ -38,6 +38,7 @@
       <button class="tab" data-panel="temporary">Premium temporal</button>
       <button class="tab" data-panel="premiumFree">Premium-Free</button>
       <button class="tab" data-panel="freeTrial">FreeTrial</button>
+      <button class="tab" data-panel="communications">Comunicaciones</button>
     </nav>
 
     <section id="full" class="panel card active">
@@ -107,6 +108,7 @@
       <div class="panel-heading"><div><h2>Premium-Free global</h2><p>FreeTrial local con todas las funciones Premium.</p></div></div>
       <div class="settings-row">
         <label class="check"><input id="premiumFreeEnabled" type="checkbox"> Permitir Premium-Free</label>
+        <div class="field"><label for="premiumFreeUntil">Adquirible hasta (UTC, inclusivo)</label><input id="premiumFreeUntil" type="date"></div>
         <div class="field compact"><label for="premiumFreeDays">Días</label><input id="premiumFreeDays" type="number" min="1" max="3650" value="7"></div>
         <button class="primary" data-action="save-premium-free">Guardar</button>
         <button class="refresh" data-action="load-premium-free">Actualizar</button>
@@ -117,6 +119,7 @@
       <div class="panel-heading"><div><h2>FreeTrial normal</h2><p>Prueba local limitada y control de identidad de producto.</p></div></div>
       <div class="settings-row">
         <label class="check"><input id="freeEnabled" type="checkbox"> Permitir nuevas FreeTrial</label>
+        <div class="field"><label for="freeUntil">Adquirible hasta (UTC, inclusivo)</label><input id="freeUntil" type="date"></div>
         <div class="field compact"><label for="freeDays">Días</label><input id="freeDays" type="number" min="1" max="3650" value="7"></div>
         <div class="field"><label for="productName">ProductName</label><input id="productName" value="PROYECTO_NUEVO-1.0.0"></div>
         <div class="field"><label for="productBasePreview">Nombre</label><input id="productBasePreview" value="PROYECTO_NUEVO" readonly></div>
@@ -124,6 +127,39 @@
         <div class="field"><label for="trialNamePreview">Clave interna de campana</label><input id="trialNamePreview" value="PROYECTO_NUEVO-1.0.0" readonly></div>
         <button class="primary" data-action="save-free">Guardar</button>
         <button class="refresh" data-action="load-free">Actualizar</button>
+      </div>
+    </section>
+
+    <section id="communications" class="panel card">
+      <div class="panel-heading"><div><h2>Comunicaciones</h2><p>Discord y avisos para clientes abiertos.</p></div></div>
+      <div class="communication-block">
+        <h3>Notificacion en directo</h3>
+        <p class="security-note">Software Infamous consulta este aviso periodicamente desde Launcher-Licenses.</p>
+        <div class="settings-row communication-grid">
+          <label class="check"><input id="liveEnabled" type="checkbox"> Aviso habilitado</label>
+          <div class="field"><label for="liveType">Tipo</label><select id="liveType"><option value="info">Informacion</option><option value="success">Exito</option><option value="warning">Advertencia</option><option value="error">Error</option></select></div>
+          <div class="field"><label for="liveTitle">Titulo</label><input id="liveTitle" maxlength="120" placeholder="Actualizacion disponible"></div>
+          <div class="field"><label for="liveExpires">Expira (UTC, opcional)</label><input id="liveExpires" type="datetime-local"></div>
+          <div class="field wide"><label for="liveMessage">Mensaje</label><textarea id="liveMessage" maxlength="1500" placeholder="Reinicia el proyecto para adquirir una nueva actualizacion."></textarea></div>
+          <button class="primary" data-action="publish-live">Publicar aviso</button>
+          <button data-action="disable-live">Deshabilitar</button>
+          <button class="refresh" data-action="load-live">Actualizar</button>
+        </div>
+      </div>
+      <div class="communication-block">
+        <h3>Discord webhook</h3>
+        <p class="security-note danger-text">La URL del webhook es una credencial. Solo permanece en memoria durante esta sesion.</p>
+        <div class="settings-row communication-grid">
+          <div class="field"><label for="discordChannel">Destino</label><select id="discordChannel"><option>The Unknown - Anuncios</option><option>Unknown - Tests</option></select></div>
+          <div class="field wide"><label for="discordWebhook">Webhook secreto</label><input id="discordWebhook" type="password" autocomplete="off" placeholder="https://discord.com/api/webhooks/..."></div>
+          <div class="field"><label for="discordUsername">Nombre mostrado (opcional)</label><input id="discordUsername" maxlength="80"></div>
+          <div class="field"><label for="discordAvatar">Avatar por URL (opcional)</label><input id="discordAvatar" type="url"></div>
+          <div class="field wide"><label>Formato Discord</label><div class="format-toolbar"><button type="button" data-format="bold">Negrita</button><button type="button" data-format="italic">Cursiva</button><button type="button" data-format="underline">Subrayado</button><button type="button" data-format="strike">Tachado</button><button type="button" data-format="spoiler">Spoiler</button><button type="button" data-format="code">Codigo</button><button type="button" data-format="codeblock">Bloque</button><button type="button" data-format="quote">Cita</button><button type="button" data-format="blockquote">Cita multiple</button><button type="button" data-format="heading">H1</button><button type="button" data-format="heading2">H2</button><button type="button" data-format="heading3">H3</button><button type="button" data-format="subtext">Subtexto</button><button type="button" data-format="bullet">Lista</button><button type="button" data-format="numbered">Numerada</button><button type="button" data-format="link">Enlace</button></div></div>
+          <div class="field wide"><label for="discordMessage">Mensaje</label><textarea id="discordMessage" maxlength="2000" placeholder="Texto del anuncio"></textarea></div>
+          <div class="field"><label for="discordImage">Imagen o GIF por URL</label><input id="discordImage" type="url"></div>
+          <div class="field"><label for="discordFiles">Archivos adjuntos</label><input id="discordFiles" type="file" multiple></div>
+          <button class="primary" data-action="send-discord">Enviar a Discord</button>
+        </div>
       </div>
     </section>
 

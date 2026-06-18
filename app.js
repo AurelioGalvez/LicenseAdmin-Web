@@ -17,9 +17,12 @@ const files = {
   temporary: "PremiumHwidLicenses.txt",
   premiumFreeEnabled: "PremiumFreeEnabled.txt",
   premiumFreeDays: "PremiumFreeDays.txt",
+  premiumFreeUntil: "PremiumFreeAcquisitionUntilUtc.txt",
   freeEnabled: "EnableFreeTrial.txt",
   freeDays: "FreeTrialDays.txt",
-  productName: "ProductName.txt"
+  freeUntil: "FreeTrialAcquisitionUntilUtc.txt",
+  productName: "ProductName.txt",
+  liveNotification: "LiveNotification.json"
 };
 
 function status(message, type = "") {
@@ -449,24 +452,27 @@ async function saveTemporary() {
 }
 
 async function loadPremiumFree() {
-  const [enabled, days] = await Promise.all([readFile(files.premiumFreeEnabled), readFile(files.premiumFreeDays)]);
+  const [enabled, days, until] = await Promise.all([readFile(files.premiumFreeEnabled), readFile(files.premiumFreeDays), readFile(files.premiumFreeUntil)]);
   $("premiumFreeEnabled").checked = enabled.content.trim().toLowerCase() === "true";
   $("premiumFreeDays").value = Number(days.content.trim()) || 7;
+  $("premiumFreeUntil").value = until.content.trim();
   status("Configuración Premium-Free cargada.", "success");
 }
 async function savePremiumFree() {
   await Promise.all([
     writeFile(files.premiumFreeEnabled, `${$("premiumFreeEnabled").checked ? "True" : "False"}\n`, "Update Premium-Free enabled state"),
-    writeFile(files.premiumFreeDays, `${validDays("premiumFreeDays")}\n`, "Update Premium-Free duration")
+    writeFile(files.premiumFreeDays, `${validDays("premiumFreeDays")}\n`, "Update Premium-Free duration"),
+    writeFile(files.premiumFreeUntil, `${validDate("premiumFreeUntil")}\n`, "Update Premium-Free acquisition deadline")
   ]);
   await loadPremiumFree();
   status("Premium-Free actualizado y verificado.", "success");
 }
 
 async function loadFree() {
-  const [enabled, days, product] = await Promise.all([readFile(files.freeEnabled), readFile(files.freeDays), readFile(files.productName)]);
+  const [enabled, days, product, until] = await Promise.all([readFile(files.freeEnabled), readFile(files.freeDays), readFile(files.productName), readFile(files.freeUntil)]);
   $("freeEnabled").checked = enabled.content.trim().toLowerCase() === "true";
   $("freeDays").value = Number(days.content.trim()) || 7;
+  $("freeUntil").value = until.content.trim();
   if (product.content.trim()) {
     $("productName").value = product.content.trim();
     $("generatorProduct").value =
@@ -481,6 +487,7 @@ async function saveFree() {
   await Promise.all([
     writeFile(files.freeEnabled, `${$("freeEnabled").checked ? "True" : "False"}\n`, "Update FreeTrial enabled state"),
     writeFile(files.freeDays, `${validDays("freeDays")}\n`, "Update FreeTrial duration"),
+    writeFile(files.freeUntil, `${validDate("freeUntil")}\n`, "Update FreeTrial acquisition deadline"),
     writeFile(files.productName, `${product}\n`, "Update license ProductName")
   ]);
   await loadFree();
@@ -491,6 +498,111 @@ function validDays(id) {
   const value = Number($(id).value);
   if (!Number.isInteger(value) || value < 1 || value > 3650) throw new Error("Los días deben estar entre 1 y 3650.");
   return value;
+}
+
+function validDate(id) {
+  const value = $(id).value.trim();
+  if (!value) return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const parsed = match ? new Date(`${value}T00:00:00Z`) : null;
+  if (!parsed ||
+      parsed.getUTCFullYear() !== Number(match[1]) ||
+      parsed.getUTCMonth() + 1 !== Number(match[2]) ||
+      parsed.getUTCDate() !== Number(match[3])) {
+    throw new Error("La fecha limite no es valida.");
+  }
+  return value;
+}
+
+async function loadLiveNotification() {
+  const remote = await readFile(files.liveNotification);
+  let notice = {};
+  if (remote.content.trim()) {
+    try { notice = JSON.parse(remote.content); } catch { throw new Error("LiveNotification.json no contiene JSON valido."); }
+  }
+  $("liveEnabled").checked = notice.enabled === true;
+  $("liveType").value = ["info", "success", "warning", "error"].includes(notice.type) ? notice.type : "info";
+  $("liveTitle").value = notice.title || "";
+  $("liveMessage").value = notice.message || "";
+  $("liveExpires").value = notice.expiresUtc ? String(notice.expiresUtc).slice(0, 16) : "";
+  status("Notificacion en directo cargada.", "success");
+}
+
+async function publishLiveNotification() {
+  const message = $("liveMessage").value.trim();
+  if (!message) throw new Error("Escribe el mensaje de la notificacion.");
+  const expires = $("liveExpires").value;
+  const notice = {
+    id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+    enabled: $("liveEnabled").checked,
+    type: $("liveType").value,
+    title: $("liveTitle").value.trim(),
+    message,
+    publishedUtc: new Date().toISOString(),
+    expiresUtc: expires ? `${expires}:00Z` : null
+  };
+  await writeFile(files.liveNotification, `${JSON.stringify(notice, null, 2)}\n`, "Publish live client notification");
+  await loadLiveNotification();
+  status("Notificacion publicada para los clientes abiertos.", "success");
+}
+
+async function disableLiveNotification() {
+  const remote = await readFile(files.liveNotification);
+  let notice = {};
+  try { notice = remote.content.trim() ? JSON.parse(remote.content) : {}; } catch { notice = {}; }
+  notice.enabled = false;
+  notice.updatedUtc = new Date().toISOString();
+  await writeFile(files.liveNotification, `${JSON.stringify(notice, null, 2)}\n`, "Disable live client notification");
+  await loadLiveNotification();
+}
+
+async function sendDiscordWebhook() {
+  requireConnection();
+  const webhook = $("discordWebhook").value.trim();
+  if (!/^https:\/\/(?:canary\.|ptb\.)?(?:discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/.test(webhook)) {
+    throw new Error("Introduce una URL de webhook Discord valida.");
+  }
+  const content = $("discordMessage").value.trim();
+  const image = $("discordImage").value.trim();
+  const attachments = Array.from($("discordFiles").files || []);
+  if (!content && !image && attachments.length === 0) throw new Error("Agrega texto, una imagen o un archivo.");
+
+  const payload = { content };
+  const username = $("discordUsername").value.trim();
+  const avatar = $("discordAvatar").value.trim();
+  if (username) payload.username = username;
+  if (avatar) payload.avatar_url = avatar;
+  if (image) payload.embeds = [{ image: { url: image } }];
+
+  const body = new FormData();
+  body.append("payload_json", JSON.stringify(payload));
+  attachments.forEach((file, index) => body.append(`files[${index}]`, file, file.name));
+  const response = await fetch(`${webhook}?wait=true`, { method: "POST", body });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Discord ${response.status}: ${detail || response.statusText}`);
+  }
+  status(`Mensaje enviado a ${$("discordChannel").value}.`, "success");
+}
+
+const discordFormats = {
+  bold: ["**", "**"], italic: ["*", "*"], underline: ["__", "__"],
+  strike: ["~~", "~~"], spoiler: ["||", "||"], code: ["`", "`"],
+  codeblock: ["```\n", "\n```"], quote: ["> ", ""], blockquote: [">>> ", ""],
+  heading: ["# ", ""], heading2: ["## ", ""], heading3: ["### ", ""],
+  subtext: ["-# ", ""], bullet: ["- ", ""], numbered: ["1. ", ""],
+  link: ["[", "](https://example.com)"]
+};
+
+function applyDiscordFormat(format) {
+  const textarea = $("discordMessage");
+  const pair = discordFormats[format];
+  if (!pair) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.slice(start, end) || "texto";
+  textarea.setRangeText(pair[0] + selected + pair[1], start, end, "select");
+  textarea.focus();
 }
 
 function row(values, select) {
@@ -537,7 +649,8 @@ async function loadActivePanel() {
     },
     temporary: loadTemporary,
     premiumFree: loadPremiumFree,
-    freeTrial: loadFree
+    freeTrial: loadFree,
+    communications: loadLiveNotification
   };
   return loaders[active]();
 }
@@ -559,12 +672,20 @@ const actions = {
   "generate-license": generateSignedLicense, "copy-license": copyGeneratedLicense,
   "load-temporary": loadTemporary, "save-temp-config": saveTempConfig, "save-temporary": saveTemporary,
   "load-premium-free": loadPremiumFree, "save-premium-free": savePremiumFree,
-  "load-free": loadFree, "save-free": saveFree
+  "load-free": loadFree, "save-free": saveFree,
+  "load-live": loadLiveNotification, "publish-live": publishLiveNotification,
+  "disable-live": disableLiveNotification, "send-discord": sendDiscordWebhook
 };
 document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", () => run(actions[el.dataset.action])));
 $("connect").addEventListener("click", () => run(connect));
 $("cancelDelete").addEventListener("click", () => $("confirmDialog").close());
 $("confirmDelete").addEventListener("click", () => run(confirmDelete));
 $("productName").addEventListener("input", updateProductIdentityPreview);
+document.querySelectorAll("[data-format]").forEach(button =>
+  button.addEventListener("click", () => applyDiscordFormat(button.dataset.format)));
 updateProductIdentityPreview();
-window.addEventListener("pagehide", () => { state.token = ""; $("token").value = ""; });
+window.addEventListener("pagehide", () => {
+  state.token = "";
+  $("token").value = "";
+  $("discordWebhook").value = "";
+});
