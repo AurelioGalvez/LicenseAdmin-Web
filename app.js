@@ -15,6 +15,7 @@ const discord = {
 const licenseAuthority = {
   repository: "Launcher-Licenses"
 };
+let writeQueue = Promise.resolve();
 const files = {
   full: "Licenses.txt",
   tempEnabled: "PremiumHwidEnabled.txt",
@@ -23,6 +24,7 @@ const files = {
   premiumFreeEnabled: "PremiumFreeEnabled.txt",
   premiumFreeDays: "PremiumFreeDays.txt",
   premiumFreeUntil: "PremiumFreeAcquisitionUntilUtc.txt",
+  premiumFreeProductName: "PremiumFreeProductName.txt",
   freeEnabled: "EnableFreeTrial.txt",
   freeDays: "FreeTrialDays.txt",
   freeUntil: "FreeTrialAcquisitionUntilUtc.txt",
@@ -117,7 +119,14 @@ async function readFile(path) {
   return { content: decodeURIComponent(escape(atob(data.content.replace(/\s/g, "")))), sha: data.sha };
 }
 
-async function writeFile(path, content, message) {
+function writeFile(path, content, message) {
+  const operation = () => writeFileImmediate(path, content, message);
+  const result = writeQueue.then(operation, operation);
+  writeQueue = result.catch(() => {});
+  return result;
+}
+
+async function writeFileImmediate(path, content, message) {
   const encodedContent = btoa(unescape(encodeURIComponent(content)));
 
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -266,18 +275,24 @@ function parseProductIdentity(value) {
   };
 }
 
-function updateProductIdentityPreview() {
+function updateIdentityPreview(inputId, baseId, trialNameId, productIdId) {
   try {
-    const identity = parseProductIdentity($("productName").value);
-    $("productBasePreview").value = identity.name;
-    $("trialNamePreview").value = identity.trialName;
-    $("productIdPreview").value = identity.id;
+    const identity = parseProductIdentity($(inputId).value);
+    $(baseId).value = identity.name;
+    $(trialNameId).value = identity.trialName;
+    $(productIdId).value = identity.id;
   } catch {
-    $("productBasePreview").value = "Formato invalido";
-    $("trialNamePreview").value = "Formato invalido";
-    $("productIdPreview").value = "Formato inválido";
+    $(baseId).value = "Formato invalido";
+    $(trialNameId).value = "Formato invalido";
+    $(productIdId).value = "Formato invalido";
   }
 }
+
+const updateProductIdentityPreview = () => updateIdentityPreview(
+  "productName", "productBasePreview", "trialNamePreview", "productIdPreview");
+const updatePremiumFreeIdentityPreview = () => updateIdentityPreview(
+  "premiumFreeProductName", "premiumFreeBasePreview",
+  "premiumFreeTrialNamePreview", "premiumFreeProductIdPreview");
 
 async function loadGeneratorProduct() {
   const remote = await readFile(files.productName);
@@ -457,17 +472,27 @@ async function saveTemporary() {
 }
 
 async function loadPremiumFree() {
-  const [enabled, days, until] = await Promise.all([readFile(files.premiumFreeEnabled), readFile(files.premiumFreeDays), readFile(files.premiumFreeUntil)]);
+  const [enabled, days, until, product] = await Promise.all([
+    readFile(files.premiumFreeEnabled),
+    readFile(files.premiumFreeDays),
+    readFile(files.premiumFreeUntil),
+    readFile(files.premiumFreeProductName)
+  ]);
   $("premiumFreeEnabled").checked = enabled.content.trim().toLowerCase() === "true";
   $("premiumFreeDays").value = Number(days.content.trim()) || 7;
   $("premiumFreeUntil").value = until.content.trim();
+  if (product.content.trim()) $("premiumFreeProductName").value = product.content.trim();
+  updatePremiumFreeIdentityPreview();
   status("Configuración Premium-Free cargada.", "success");
 }
 async function savePremiumFree() {
+  const product = $("premiumFreeProductName").value.trim();
+  parseProductIdentity(product);
   await Promise.all([
     writeFile(files.premiumFreeEnabled, `${$("premiumFreeEnabled").checked ? "True" : "False"}\n`, "Update Premium-Free enabled state"),
     writeFile(files.premiumFreeDays, `${validDays("premiumFreeDays")}\n`, "Update Premium-Free duration"),
-    writeFile(files.premiumFreeUntil, `${validDate("premiumFreeUntil")}\n`, "Update Premium-Free acquisition deadline")
+    writeFile(files.premiumFreeUntil, `${validDate("premiumFreeUntil")}\n`, "Update Premium-Free acquisition deadline"),
+    writeFile(files.premiumFreeProductName, `${product}\n`, "Update Premium-Free ProductName")
   ]);
   await loadPremiumFree();
   status("Premium-Free actualizado y verificado.", "success");
@@ -731,9 +756,11 @@ $("connect").addEventListener("click", () => run(connect));
 $("cancelDelete").addEventListener("click", () => $("confirmDialog").close());
 $("confirmDelete").addEventListener("click", () => run(confirmDelete));
 $("productName").addEventListener("input", updateProductIdentityPreview);
+$("premiumFreeProductName").addEventListener("input", updatePremiumFreeIdentityPreview);
 document.querySelectorAll("[data-format]").forEach(button =>
   button.addEventListener("click", () => applyDiscordFormat(button.dataset.format)));
 updateProductIdentityPreview();
+updatePremiumFreeIdentityPreview();
 window.addEventListener("pagehide", () => {
   state.token = "";
   $("token").value = "";

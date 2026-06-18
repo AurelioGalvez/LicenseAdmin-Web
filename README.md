@@ -140,10 +140,27 @@ predeterminado.
 ## Actualización de datos
 
 Las escrituras se realizan directamente mediante la API de GitHub. La
-aplicación evita reutilizar respuestas mediante la opción `no-store` y un
-parámetro único de lectura, obtiene el SHA más reciente antes de cada escritura
-y reintenta automáticamente los conflictos `409`.
+aplicación evita reutilizar respuestas mediante `no-store` y un parámetro único
+de lectura. Las operaciones se encolan y ejecutan una por una porque GitHub crea
+un commit por archivo y dos `PUT` simultáneos pueden competir por el estado de
+la rama aunque modifiquen archivos diferentes. Antes de cada escritura se
+obtiene el SHA más reciente y cualquier conflicto `409` residual se reintenta.
 
 Después de guardar una configuración, la sección vuelve a leer los archivos
 desde GitHub para confirmar los valores persistidos. Los cambios en los
 archivos de licencia no requieren volver a desplegar GitHub Pages.
+
+## Identidades separadas de licencias gratuitas
+
+FreeTrial administra `ProductName.txt` y Premium-Free administra
+`PremiumFreeProductName.txt`. Las dos secciones validan `NOMBRE_PRODUCTO-ID` y
+muestran por separado el Nombre, Product ID de TrialMaker (`#ID#`) y clave
+interna de campaña. Así una campaña Premium-Free no depende de FreeTrial.
+
+Las escrituras se encolan, incluso cuando una pantalla guarda varios archivos,
+para evitar el conflicto de rama que antes mostraba un error después de cambiar
+ProductName aunque GitHub sí hubiera creado el commit.
+
+Las notificaciones en vivo se conservan. Software Infamous renueva únicamente
+la URL de `LiveNotification.json` cada 30 segundos; la validación de licencias
+no usa ese parámetro. `publishedUtc` permite volver a publicar el mismo ID.
