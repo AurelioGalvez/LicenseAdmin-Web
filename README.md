@@ -20,11 +20,16 @@ autorizar cada lectura y escritura con el token. Un tercero puede copiar la web,
 pero no puede modificar licencias sin un token con acceso de escritura al repo.
 La seguridad depende de limitar el token a los repositorios y permisos minimos.
 
-Este panel es una aplicacion estatica y no puede ocultar secretos en su codigo.
-El token y el webhook introducidos por el operador se mantienen solo en memoria
-durante la pestana actual y se eliminan del formulario al salir. No se guardan
-en `localStorage`, cookies ni archivos del repositorio. Aun asi, debe usarse un
-token fine-grained limitado a `Launcher-Licenses` con `Contents: Read and write`.
+Este panel es una aplicacion estatica y no contiene webhooks ni claves para
+descifrarlos. El token introducido por el operador se mantiene solo en memoria
+durante la pestana actual y se elimina del formulario al salir. No se guarda en
+`localStorage`, cookies ni archivos del repositorio.
+
+El token fine-grained debe limitarse a estos repositorios y permisos:
+
+- `Launcher-Licenses`: `Contents: Read and write`.
+- `LicenseAdmin-Web`: `Actions: Read and write` y `Contents: Read and write`
+  para el generador de licencias existente.
 
 Quien obtenga ese token, un webhook o acceso de escritura al repositorio puede
 administrar el recurso correspondiente. El repositorio publico por si solo no
@@ -92,17 +97,26 @@ La pestana **Comunicaciones** publica `LiveNotification.json`. Los clientes
 abiertos consultan el archivo cada 30 segundos y muestran cada ID una sola vez
 por sesion. El aviso admite tipo, titulo, mensaje y expiracion UTC.
 
-El emisor Discord admite Markdown, imagen/GIF por URL y archivos adjuntos. La
-URL completa del webhook es una credencial: permanece solo en memoria y nunca
-debe escribirse en este repositorio. Si se publica o comparte accidentalmente,
-debe eliminarse y regenerarse desde Discord.
+El emisor Discord admite Markdown e imagen/GIF por URL. La URL completa de cada
+webhook se almacena una sola vez como secreto cifrado de GitHub Actions y nunca
+se entrega al navegador ni se escribe en este repositorio.
+
+Configuracion unica en `AurelioGalvez/LicenseAdmin-Web > Settings > Secrets and
+variables > Actions`:
+
+- `DISCORD_WEBHOOK_ANNOUNCEMENTS`: webhook de The Unknown - Anuncios.
+- `DISCORD_WEBHOOK_TESTS`: webhook de Unknown - Tests.
+
+Los webhooks que se hayan compartido anteriormente deben regenerarse en Discord
+antes de guardarlos. El workflow `send-discord-notification.yml` selecciona el
+secreto segun el destino y confirma el resultado al panel.
 
 Uso:
 
 1. Conecta GitHub con el token y el propietario del repositorio.
-2. Abre **Comunicaciones** y selecciona el destino descriptivo.
-3. Pega el webhook de ese canal, redacta el mensaje y agrega URL o archivos.
-4. Usa **Enviar a Discord**. Discord valida sus limites de contenido y adjuntos.
+2. Abre **Comunicaciones** y selecciona el destino.
+3. Redacta el mensaje y agrega una imagen o GIF por URL si corresponde.
+4. Usa **Enviar a Discord** y espera la confirmacion del workflow.
 
 Para un aviso del cliente, completa tipo, titulo, mensaje y expiracion UTC,
 marca **Aviso habilitado** y pulsa **Publicar aviso**. **Deshabilitar** conserva

@@ -1,0 +1,56 @@
+name: Send Discord notification
+
+run-name: "Discord ${{ inputs.request_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Request identifier
+        required: true
+        type: string
+      channel:
+        description: Configured Discord destination
+        required: true
+        type: choice
+        options:
+          - announcements
+          - tests
+      content:
+        description: Message content
+        required: false
+        type: string
+      image_url:
+        description: Optional image or GIF URL
+        required: false
+        type: string
+      username:
+        description: Optional webhook username
+        required: false
+        type: string
+      avatar_url:
+        description: Optional webhook avatar URL
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Send notification
+        env:
+          REQUEST_ID: ${{ inputs.request_id }}
+          CHANNEL: ${{ inputs.channel }}
+          CONTENT: ${{ inputs.content }}
+          IMAGE_URL: ${{ inputs.image_url }}
+          USERNAME: ${{ inputs.username }}
+          AVATAR_URL: ${{ inputs.avatar_url }}
+          DISCORD_WEBHOOK_ANNOUNCEMENTS: ${{ secrets.DISCORD_WEBHOOK_ANNOUNCEMENTS }}
+          DISCORD_WEBHOOK_TESTS: ${{ secrets.DISCORD_WEBHOOK_TESTS }}
+        run: node tools/send-discord.mjs

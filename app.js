@@ -7,6 +7,11 @@ const generator = {
   branch: "main",
   workflow: "generate-premium-license.yml"
 };
+const discord = {
+  repository: "LicenseAdmin-Web",
+  branch: "main",
+  workflow: "send-discord-notification.yml"
+};
 const licenseAuthority = {
   repository: "Launcher-Licenses"
 };
@@ -558,31 +563,57 @@ async function disableLiveNotification() {
 
 async function sendDiscordWebhook() {
   requireConnection();
-  const webhook = $("discordWebhook").value.trim();
-  if (!/^https:\/\/(?:canary\.|ptb\.)?(?:discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/.test(webhook)) {
-    throw new Error("Introduce una URL de webhook Discord valida.");
-  }
   const content = $("discordMessage").value.trim();
   const image = $("discordImage").value.trim();
-  const attachments = Array.from($("discordFiles").files || []);
-  if (!content && !image && attachments.length === 0) throw new Error("Agrega texto, una imagen o un archivo.");
+  if (!content && !image) throw new Error("Agrega texto o una imagen por URL.");
 
-  const payload = { content };
-  const username = $("discordUsername").value.trim();
-  const avatar = $("discordAvatar").value.trim();
-  if (username) payload.username = username;
-  if (avatar) payload.avatar_url = avatar;
-  if (image) payload.embeds = [{ image: { url: image } }];
+  const requestId = crypto.randomUUID();
+  await api(
+    `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${discord.repository}/actions/workflows/${discord.workflow}/dispatches`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ref: discord.branch,
+        inputs: {
+          request_id: requestId,
+          channel: $("discordChannel").value,
+          content,
+          image_url: image,
+          username: $("discordUsername").value.trim(),
+          avatar_url: $("discordAvatar").value.trim()
+        }
+      })
+    }
+  );
 
-  const body = new FormData();
-  body.append("payload_json", JSON.stringify(payload));
-  attachments.forEach((file, index) => body.append(`files[${index}]`, file, file.name));
-  const response = await fetch(`${webhook}?wait=true`, { method: "POST", body });
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`Discord ${response.status}: ${detail || response.statusText}`);
+  status("Envio autorizado. Esperando confirmacion de GitHub Actions...", "");
+  const runsUrl =
+    `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${discord.repository}` +
+    `/actions/workflows/${discord.workflow}/runs`;
+  for (let attempt = 1; attempt <= 60; attempt++) {
+    await delay(2000);
+    const query = new URLSearchParams({
+      event: "workflow_dispatch",
+      branch: discord.branch,
+      per_page: "50",
+      _: `${Date.now()}-${Math.random()}`
+    });
+    const data = await api(`${runsUrl}?${query}`);
+    const run = (data.workflow_runs || []).find(
+      item => item.display_title === `Discord ${requestId}`
+    );
+    if (!run || run.status !== "completed") {
+      status(`Enviando a Discord... intento ${attempt}/60`, "");
+      continue;
+    }
+    if (run.conclusion !== "success") {
+      throw new Error("GitHub Actions no pudo enviar el mensaje. Revisa que el secreto del canal este configurado.");
+    }
+    status(`Mensaje enviado a ${$("discordChannel").selectedOptions[0].textContent}.`, "success");
+    return;
   }
-  status(`Mensaje enviado a ${$("discordChannel").value}.`, "success");
+  throw new Error("GitHub Actions no confirmo el envio dentro del tiempo esperado.");
 }
 
 const discordFormats = {
@@ -687,5 +718,4 @@ updateProductIdentityPreview();
 window.addEventListener("pagehide", () => {
   state.token = "";
   $("token").value = "";
-  $("discordWebhook").value = "";
 });
