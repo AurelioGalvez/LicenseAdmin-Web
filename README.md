@@ -15,6 +15,22 @@ GitHub Pages no puede proteger secretos del lado servidor. Por eso el
 administrador debe introducir su propio token en cada sesión. No publiques un
 token dentro de `app.js`.
 
+El codigo fuente publico no concede permisos de administracion: GitHub vuelve a
+autorizar cada lectura y escritura con el token. Un tercero puede copiar la web,
+pero no puede modificar licencias sin un token con acceso de escritura al repo.
+La seguridad depende de limitar el token a los repositorios y permisos minimos.
+
+Este panel es una aplicacion estatica y no puede ocultar secretos en su codigo.
+El token y el webhook introducidos por el operador se mantienen solo en memoria
+durante la pestana actual y se eliminan del formulario al salir. No se guardan
+en `localStorage`, cookies ni archivos del repositorio. Aun asi, debe usarse un
+token fine-grained limitado a `Launcher-Licenses` con `Contents: Read and write`.
+
+Quien obtenga ese token, un webhook o acceso de escritura al repositorio puede
+administrar el recurso correspondiente. El repositorio publico por si solo no
+concede esos permisos. Las URLs de webhook compartidas fuera del panel deben
+revocarse y regenerarse en Discord.
+
 ## Generacion de claves Premium FULL
 
 La pestana **Generar clave** emite licencias firmadas y ligadas al Hardware ID.
@@ -58,9 +74,39 @@ desde Premium FULL revoca la licencia firmada en la siguiente validación online
 - `PremiumHwidLicenses.txt`
 - `PremiumFreeEnabled.txt`
 - `PremiumFreeDays.txt`
+- `PremiumFreeAcquisitionUntilUtc.txt`
 - `EnableFreeTrial.txt`
 - `FreeTrialDays.txt`
+- `FreeTrialAcquisitionUntilUtc.txt`
 - `ProductName.txt`
+- `LiveNotification.json`
+
+Las fechas de adquisicion usan `yyyy-MM-dd` y son inclusivas en UTC. Un archivo
+vacio no impone fecha limite. El vencimiento bloquea solamente nuevas
+adquisiciones; las licencias activas siguen funcionando mientras su modalidad
+permanezca habilitada.
+
+## Discord y notificaciones
+
+La pestana **Comunicaciones** publica `LiveNotification.json`. Los clientes
+abiertos consultan el archivo cada 30 segundos y muestran cada ID una sola vez
+por sesion. El aviso admite tipo, titulo, mensaje y expiracion UTC.
+
+El emisor Discord admite Markdown, imagen/GIF por URL y archivos adjuntos. La
+URL completa del webhook es una credencial: permanece solo en memoria y nunca
+debe escribirse en este repositorio. Si se publica o comparte accidentalmente,
+debe eliminarse y regenerarse desde Discord.
+
+Uso:
+
+1. Conecta GitHub con el token y el propietario del repositorio.
+2. Abre **Comunicaciones** y selecciona el destino descriptivo.
+3. Pega el webhook de ese canal, redacta el mensaje y agrega URL o archivos.
+4. Usa **Enviar a Discord**. Discord valida sus limites de contenido y adjuntos.
+
+Para un aviso del cliente, completa tipo, titulo, mensaje y expiracion UTC,
+marca **Aviso habilitado** y pulsa **Publicar aviso**. **Deshabilitar** conserva
+el contenido pero impide que nuevas consultas lo muestren.
 
 `ProductName.txt` debe usar el formato `NOMBRE_PRODUCTO-ID`. El nombre base
 acepta letras, numeros y guion bajo; el ID admite versiones numericas.
