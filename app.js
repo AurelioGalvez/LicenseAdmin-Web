@@ -15,21 +15,21 @@ const discord = {
 const licenseAuthority = {
   repository: "Launcher-Licenses"
 };
-const trialApplicationName = "Software_Infamous";
 let writeQueue = Promise.resolve();
 const files = {
-  full: "Licenses.txt",
+  full: "PremiumFullLicenses.json",
+  fullIdentity: "PremiumFullIdentity.json",
   tempEnabled: "PremiumHwidEnabled.txt",
   tempDefaultDays: "PremiumHwidDefaultDays.txt",
-  temporary: "PremiumHwidLicenses.txt",
+  temporary: "PremiumTemporaryLicenses.json",
   premiumFreeEnabled: "PremiumFreeEnabled.txt",
   premiumFreeDays: "PremiumFreeDays.txt",
   premiumFreeUntil: "PremiumFreeAcquisitionUntilUtc.txt",
-  premiumFreeProductName: "PremiumFreeProductName.txt",
+  premiumFreeIdentity: "PremiumFreeIdentity.json",
   freeEnabled: "EnableFreeTrial.txt",
   freeDays: "FreeTrialDays.txt",
   freeUntil: "FreeTrialAcquisitionUntilUtc.txt",
-  productName: "ProductName.txt"
+  freeIdentity: "FreeTrialIdentity.json"
 };
 
 function status(message, type = "") {
@@ -178,7 +178,7 @@ async function deleteRepositoryFile(repository, path, branch, sha) {
   });
 }
 
-async function authorizeSignedPremium(hardwareId, client) {
+async function authorizeSignedPremium(hardwareId, client, identity) {
   const repository = licenseAuthority.repository;
   const repositoryInfo = await api(
     `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${encodeURIComponent(repository)}`
@@ -194,16 +194,18 @@ async function authorizeSignedPremium(hardwareId, client) {
 
     if (existing) {
       existing.comment = existing.comment || `Signed Premium: ${client}`;
+      existing.identity = identity;
     } else {
       entries.push({
         hardwareId,
+        identity,
         comment: `Signed Premium: ${client}`
       });
     }
 
     const body = {
       message: `Authorize signed Premium FULL ${hardwareId}`,
-      content: btoa(unescape(encodeURIComponent(serializeList(entries)))),
+      content: btoa(unescape(encodeURIComponent(serializeList(entries, identity)))),
       branch
     };
     if (current?.sha) body.sha = current.sha;
@@ -238,74 +240,153 @@ async function authorizeSignedPremium(hardwareId, client) {
   );
 }
 
-const parseList = content => content.split(/\r?\n/).filter(Boolean).map(line => {
-  const [hardwareId, comment = ""] = line.split("//", 2);
-  return { hardwareId: hardwareId.trim(), comment: comment.trim() };
-});
-const serializeList = entries => entries
-  .sort((a, b) => a.hardwareId.localeCompare(b.hardwareId))
-  .map(x => x.comment ? `${x.hardwareId}//${x.comment.replace(/[\r\n]/g, " ")}` : x.hardwareId).join("\n") + "\n";
+function parseList(content) {
+  if (!content.trim()) return [];
+  try {
+    const document = JSON.parse(content);
+    if (document.schemaVersion !== 2 || document.type !== "PremiumFullList" || !Array.isArray(document.entries)) return [];
+    return document.entries.filter(x => x && x.schemaVersion === 2 && x.type === "PremiumFull" && x.hardwareId);
+  } catch { return []; }
+}
+const serializeList = (entries, identity) => `${JSON.stringify({
+  schemaVersion: 2,
+  type: "PremiumFullList",
+  entries: entries
+    .sort((a, b) => a.hardwareId.localeCompare(b.hardwareId))
+    .map(x => ({
+      schemaVersion: 2,
+      type: "PremiumFull",
+      hardwareId: x.hardwareId.trim(),
+      identity: x.identity || identity,
+      comment: (x.comment || "").replace(/[\r\n]/g, " ")
+    }))
+}, null, 2)}\n`;
 
 function parseTemporary(content) {
-  return content.split(/\r?\n/).filter(Boolean).flatMap(line => {
-    const [hardwareId, activationUtc, days, comment = ""] = line.split("//", 4);
-    const parsedDays = Number(days);
-    const date = new Date(activationUtc);
-    return hardwareId && Number.isFinite(parsedDays) && !Number.isNaN(date.valueOf())
-      ? [{ hardwareId: hardwareId.trim(), activationUtc: date.toISOString(), days: parsedDays, comment: comment.trim() }]
-      : [];
-  });
-}
-const serializeTemporary = entries => entries
-  .sort((a, b) => a.hardwareId.localeCompare(b.hardwareId))
-  .map(x => `${x.hardwareId}//${x.activationUtc}//${x.days}//${x.comment.replace(/[\r\n]/g, " ")}`).join("\n") + "\n";
-
-function parseProductIdentity(value) {
-  const match = /^([A-Za-z0-9_]+)-([1-9][0-9]*(?:\.[0-9]+)*)$/.exec(value.trim());
-  if (!match) {
-    throw new Error(
-      "ProductName debe usar el formato NOMBRE_PRODUCTO-ID, por ejemplo PROYECTO_NUEVO-1.0.0."
-    );
-  }
-  return {
-    name: match[1],
-    trialName: value.trim(),
-    signedProduct: match[1].replace(/_/g, " "),
-    id: `#${match[2]}#`
-  };
-}
-
-function updateIdentityPreview(inputId, baseId, trialNameId, productIdId, mode) {
+  if (!content.trim()) return [];
   try {
-    const identity = parseProductIdentity($(inputId).value);
-    $(baseId).value = identity.name;
-    $(trialNameId).value = `${trialApplicationName}_${mode}_${identity.trialName}`;
-    $(productIdId).value = identity.id;
-  } catch {
-    $(baseId).value = "Formato invalido";
-    $(trialNameId).value = "Formato invalido";
-    $(productIdId).value = "Formato invalido";
+    const document = JSON.parse(content);
+    if (document.schemaVersion !== 2 || document.type !== "PremiumTemporaryList" || !Array.isArray(document.entries)) return [];
+    return document.entries.filter(x => x && x.schemaVersion === 2 && x.type === "PremiumTemporary" && x.hardwareId);
+  } catch { return []; }
+}
+const serializeTemporary = (entries, identity) => `${JSON.stringify({
+  schemaVersion: 2,
+  type: "PremiumTemporaryList",
+  entries: entries
+    .sort((a, b) => a.hardwareId.localeCompare(b.hardwareId))
+    .map(x => ({
+      schemaVersion: 2,
+      type: "PremiumTemporary",
+      hardwareId: x.hardwareId.trim(),
+      activationUtc: new Date(x.activationUtc).toISOString(),
+      days: Number(x.days),
+      identity: x.identity || identity,
+      comment: (x.comment || "").replace(/[\r\n]/g, " ")
+    }))
+}, null, 2)}\n`;
+
+const identityFields = {
+  PremiumFull: {
+    productName: "generatorProductName",
+    productId: "generatorProductId",
+    internalTrialKey: "generatorInternalKey",
+    name: "generatorName"
+  },
+  PremiumFree: {
+    productName: "premiumFreeProductName",
+    productId: "premiumFreeProductIdPreview",
+    internalTrialKey: "premiumFreeTrialNamePreview",
+    name: "premiumFreeBasePreview"
+  },
+  FreeTrial: {
+    productName: "productName",
+    productId: "productIdPreview",
+    internalTrialKey: "trialNamePreview",
+    name: "productBasePreview"
+  }
+};
+
+// El panel y LicensingLib aplican las mismas reglas. No se deriva un campo de
+// otro: los cuatro valores forman el contrato exacto que se firma o se entrega
+// a TrialMaker y se guardan juntos para evitar configuraciones parciales.
+function identityFromForm(type) {
+  const fields = identityFields[type];
+  return validateIdentity({
+    schemaVersion: 2,
+    type,
+    productName: $(fields.productName).value.trim(),
+    productId: $(fields.productId).value.trim(),
+    internalTrialKey: $(fields.internalTrialKey).value.trim(),
+    name: $(fields.name).value.trim()
+  }, type);
+}
+
+function applyIdentityToForm(identity) {
+  const fields = identityFields[identity.type];
+  $(fields.productName).value = identity.productName;
+  $(fields.productId).value = identity.productId;
+  $(fields.internalTrialKey).value = identity.internalTrialKey;
+  $(fields.name).value = identity.name;
+}
+
+function validateIdentity(identity, expectedType) {
+  if (!identity || identity.schemaVersion !== 2 || identity.type !== expectedType) {
+    throw new Error(`La identidad ${expectedType} no usa el esquema 2.`);
+  }
+  if (!identity.productName || identity.productName.length > 120) {
+    throw new Error("ProductName es obligatorio y admite hasta 120 caracteres.");
+  }
+  if (!/^#[A-Za-z0-9][A-Za-z0-9._-]{0,63}#$/.test(identity.productId)) {
+    throw new Error("Product ID debe estar entre #, por ejemplo #2.0.0#.");
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,159}$/.test(identity.internalTrialKey)) {
+    throw new Error("La clave interna TrialMaker contiene caracteres no permitidos.");
+  }
+  if (!identity.name || identity.name.length > 120) {
+    throw new Error("Nombre es obligatorio y admite hasta 120 caracteres.");
+  }
+  return identity;
+}
+
+function parseIdentity(content, expectedType) {
+  if (!content.trim()) throw new Error(`No existe la identidad ${expectedType} de esquema 2.`);
+  return validateIdentity(JSON.parse(content), expectedType);
+}
+
+const serializeIdentity = identity => `${JSON.stringify(identity, null, 2)}\n`;
+
+async function assertIdentityIsDistinct(candidate) {
+  const definitions = [
+    [files.fullIdentity, "PremiumFull"],
+    [files.premiumFreeIdentity, "PremiumFree"],
+    [files.freeIdentity, "FreeTrial"]
+  ];
+  for (const [path, type] of definitions) {
+    if (type === candidate.type) continue;
+    const remote = await readFile(path);
+    if (!remote.content.trim()) continue;
+    const other = parseIdentity(remote.content, type);
+    if (other.productName.toLowerCase() === candidate.productName.toLowerCase() ||
+        other.productId.toLowerCase() === candidate.productId.toLowerCase() ||
+        other.internalTrialKey.toLowerCase() === candidate.internalTrialKey.toLowerCase()) {
+      throw new Error(`La identidad ${candidate.type} comparte ProductName, Product ID o clave TrialMaker con ${type}.`);
+    }
   }
 }
 
-const updateProductIdentityPreview = () => updateIdentityPreview(
-  "productName", "productBasePreview", "trialNamePreview", "productIdPreview", "FREE");
-const updatePremiumFreeIdentityPreview = () => updateIdentityPreview(
-  "premiumFreeProductName", "premiumFreeBasePreview",
-  "premiumFreeTrialNamePreview", "premiumFreeProductIdPreview", "PREMIUM_FREE");
+async function loadFullIdentity() {
+  const identity = parseIdentity((await readFile(files.fullIdentity)).content, "PremiumFull");
+  applyIdentityToForm(identity);
+  return identity;
+}
 
-async function loadGeneratorProduct() {
-  const remote = await readFile(files.productName);
-  if (!remote.content.trim()) {
-    $("generatorProduct").value = "";
-    throw new Error(
-      `${files.productName} no existe o esta vacio en ${licenseAuthority.repository}.`
-    );
-  }
-
-  const identity = parseProductIdentity(remote.content);
-  $("generatorProduct").value = identity.signedProduct;
-  return identity.signedProduct;
+async function saveFullIdentity() {
+  const identity = identityFromForm("PremiumFull");
+  await assertIdentityIsDistinct(identity);
+  await writeFile(files.fullIdentity, serializeIdentity(identity), "Update Premium FULL identity schema 2");
+  await loadFullIdentity();
+  status("Identidad Premium FULL guardada y verificada.", "success");
 }
 
 async function loadFull() {
@@ -320,10 +401,15 @@ async function loadFull() {
 async function saveFull() {
   const hardwareId = $("fullHwid").value.trim();
   if (!hardwareId) throw new Error("Introduce un Hardware ID.");
+  const identity = await loadFullIdentity();
   const existing = state.full.find(x => x.hardwareId.toLowerCase() === hardwareId.toLowerCase());
-  if (existing) existing.comment = $("fullComment").value.trim();
-  else state.full.push({ hardwareId, comment: $("fullComment").value.trim() });
-  await writeFile(files.full, serializeList(state.full), `${existing ? "Update" : "Add"} Premium FULL ${hardwareId}`);
+  if (existing) {
+    existing.comment = $("fullComment").value.trim();
+    existing.identity = identity;
+  } else {
+    state.full.push({ hardwareId, identity, comment: $("fullComment").value.trim() });
+  }
+  await writeFile(files.full, serializeList(state.full, identity), `${existing ? "Update" : "Add"} Premium FULL ${hardwareId}`);
   await loadFull();
 }
 
@@ -331,7 +417,7 @@ async function generateSignedLicense() {
   requireConnection();
   const hardwareId = $("generatorHwid").value.trim();
   const client = $("generatorClient").value.trim();
-  const product = await loadGeneratorProduct();
+  const identity = await loadFullIdentity();
   if (!/^[A-Za-z0-9-]{10,200}$/.test(hardwareId)) {
     throw new Error("Introduce un Hardware ID válido.");
   }
@@ -343,7 +429,7 @@ async function generateSignedLicense() {
     `Autorizando el HWID en ${licenseAuthority.repository}...`,
     ""
   );
-  const authorityBranch = await authorizeSignedPremium(hardwareId, client);
+  const authorityBranch = await authorizeSignedPremium(hardwareId, client, identity);
   status("HWID autorizado. Solicitando la firma...", "");
 
   await api(
@@ -357,7 +443,10 @@ async function generateSignedLicense() {
           request_id: requestId,
           hardware_id: hardwareId,
           client,
-          product
+          product_name: identity.productName,
+          product_id: identity.productId,
+          internal_trial_key: identity.internalTrialKey,
+          display_name: identity.name
         }
       })
     }
@@ -457,68 +546,64 @@ async function saveTemporary() {
   if (!hardwareId) throw new Error("Introduce un Hardware ID.");
   const days = validDays("tempDays");
   let entry = state.temporary.find(x => x.hardwareId.toLowerCase() === hardwareId.toLowerCase());
+  const identity = await loadFullIdentity();
   if (!entry) {
-    entry = { hardwareId, activationUtc: new Date().toISOString(), days, comment: "" };
+    entry = { hardwareId, activationUtc: new Date().toISOString(), days, identity, comment: "" };
     state.temporary.push(entry);
   } else if ($("tempRestart").checked) entry.activationUtc = new Date().toISOString();
   entry.days = days;
+  entry.identity = identity;
   entry.comment = $("tempComment").value.trim();
   await Promise.all([
     writeFile(files.tempEnabled, "True\n", "Enable Premium HWID licenses"),
     writeFile(files.tempDefaultDays, `${validDays("tempDefaultDays")}\n`, "Ensure Premium HWID default duration"),
-    writeFile(files.temporary, serializeTemporary(state.temporary), `Update temporary Premium ${hardwareId}`)
+    writeFile(files.temporary, serializeTemporary(state.temporary, identity), `Update temporary Premium ${hardwareId}`)
   ]);
   await loadTemporary();
 }
 
 async function loadPremiumFree() {
-  const [enabled, days, until, product] = await Promise.all([
+  const [enabled, days, until, identityRemote] = await Promise.all([
     readFile(files.premiumFreeEnabled),
     readFile(files.premiumFreeDays),
     readFile(files.premiumFreeUntil),
-    readFile(files.premiumFreeProductName)
+    readFile(files.premiumFreeIdentity)
   ]);
   $("premiumFreeEnabled").checked = enabled.content.trim().toLowerCase() === "true";
   $("premiumFreeDays").value = Number(days.content.trim()) || 7;
   $("premiumFreeUntil").value = until.content.trim();
-  if (product.content.trim()) $("premiumFreeProductName").value = product.content.trim();
-  updatePremiumFreeIdentityPreview();
+  applyIdentityToForm(parseIdentity(identityRemote.content, "PremiumFree"));
   status("Configuración Premium-Free cargada.", "success");
 }
 async function savePremiumFree() {
-  const product = $("premiumFreeProductName").value.trim();
-  parseProductIdentity(product);
+  const identity = identityFromForm("PremiumFree");
+  await assertIdentityIsDistinct(identity);
   await Promise.all([
     writeFile(files.premiumFreeEnabled, `${$("premiumFreeEnabled").checked ? "True" : "False"}\n`, "Update Premium-Free enabled state"),
     writeFile(files.premiumFreeDays, `${validDays("premiumFreeDays")}\n`, "Update Premium-Free duration"),
     writeFile(files.premiumFreeUntil, `${validDate("premiumFreeUntil")}\n`, "Update Premium-Free acquisition deadline"),
-    writeFile(files.premiumFreeProductName, `${product}\n`, "Update Premium-Free ProductName")
+    writeFile(files.premiumFreeIdentity, serializeIdentity(identity), "Update Premium-Free identity schema 2")
   ]);
   await loadPremiumFree();
   status("Premium-Free actualizado y verificado.", "success");
 }
 
 async function loadFree() {
-  const [enabled, days, product, until] = await Promise.all([readFile(files.freeEnabled), readFile(files.freeDays), readFile(files.productName), readFile(files.freeUntil)]);
+  const [enabled, days, identityRemote, until] = await Promise.all([readFile(files.freeEnabled), readFile(files.freeDays), readFile(files.freeIdentity), readFile(files.freeUntil)]);
   $("freeEnabled").checked = enabled.content.trim().toLowerCase() === "true";
   $("freeDays").value = Number(days.content.trim()) || 7;
   $("freeUntil").value = until.content.trim();
-  if (product.content.trim()) {
-    $("productName").value = product.content.trim();
-    $("generatorProduct").value =
-      parseProductIdentity(product.content).signedProduct;
-  }
-  updateProductIdentityPreview();
+  applyIdentityToForm(parseIdentity(identityRemote.content, "FreeTrial"));
   status("Configuración FreeTrial cargada.", "success");
 }
 async function saveFree() {
-  const product = $("productName").value.trim();
-  parseProductIdentity(product);
+  const identity = identityFromForm("FreeTrial");
+  await assertIdentityIsDistinct(identity);
   await Promise.all([
     writeFile(files.freeEnabled, `${$("freeEnabled").checked ? "True" : "False"}\n`, "Update FreeTrial enabled state"),
     writeFile(files.freeDays, `${validDays("freeDays")}\n`, "Update FreeTrial duration"),
     writeFile(files.freeUntil, `${validDate("freeUntil")}\n`, "Update FreeTrial acquisition deadline"),
-    writeFile(files.productName, `${product}\n`, "Update license ProductName")
+    writeFile(files.freeIdentity, serializeIdentity(identity), "Update FreeTrial identity schema 2")
   ]);
   await loadFree();
   status("FreeTrial actualizado y verificado.", "success");
@@ -653,11 +738,13 @@ async function confirmDelete() {
   if (!pending) return;
   if (pending.type === "full") {
     state.full = state.full.filter(x => x.hardwareId.toLowerCase() !== pending.hardwareId.toLowerCase());
-    await writeFile(files.full, serializeList(state.full), `Remove Premium FULL ${pending.hardwareId}`);
+    const identity = await loadFullIdentity();
+    await writeFile(files.full, serializeList(state.full, identity), `Remove Premium FULL ${pending.hardwareId}`);
     await loadFull();
   } else {
     state.temporary = state.temporary.filter(x => x.hardwareId.toLowerCase() !== pending.hardwareId.toLowerCase());
-    await writeFile(files.temporary, serializeTemporary(state.temporary), `Remove temporary Premium ${pending.hardwareId}`);
+    const identity = await loadFullIdentity();
+    await writeFile(files.temporary, serializeTemporary(state.temporary, identity), `Remove temporary Premium ${pending.hardwareId}`);
     await loadTemporary();
   }
 }
@@ -667,8 +754,8 @@ async function loadActivePanel() {
   const loaders = {
     full: loadFull,
     generator: async () => {
-      const product = await loadGeneratorProduct();
-      status(`Generador Premium FULL listo para ${product}.`, "success");
+      const identity = await loadFullIdentity();
+      status(`Generador Premium FULL listo para ${identity.name} (${identity.productId}).`, "success");
     },
     temporary: loadTemporary,
     premiumFree: loadPremiumFree,
@@ -693,6 +780,7 @@ document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", (
 const actions = {
   "load-full": loadFull, "save-full": saveFull,
   "generate-license": generateSignedLicense, "copy-license": copyGeneratedLicense,
+  "load-full-identity": loadFullIdentity, "save-full-identity": saveFullIdentity,
   "load-temporary": loadTemporary, "save-temp-config": saveTempConfig, "save-temporary": saveTemporary,
   "load-premium-free": loadPremiumFree, "save-premium-free": savePremiumFree,
   "load-free": loadFree, "save-free": saveFree,
@@ -702,12 +790,8 @@ document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("cl
 $("connect").addEventListener("click", () => run(connect));
 $("cancelDelete").addEventListener("click", () => $("confirmDialog").close());
 $("confirmDelete").addEventListener("click", () => run(confirmDelete));
-$("productName").addEventListener("input", updateProductIdentityPreview);
-$("premiumFreeProductName").addEventListener("input", updatePremiumFreeIdentityPreview);
 document.querySelectorAll("[data-format]").forEach(button =>
   button.addEventListener("click", () => applyDiscordFormat(button.dataset.format)));
-updateProductIdentityPreview();
-updatePremiumFreeIdentityPreview();
 window.addEventListener("pagehide", () => {
   state.token = "";
   $("token").value = "";

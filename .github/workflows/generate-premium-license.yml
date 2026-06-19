@@ -17,8 +17,20 @@ on:
         description: Client name
         required: true
         type: string
-      product:
-        description: Product name
+      product_name:
+        description: ProductName del contrato
+        required: true
+        type: string
+      product_id:
+        description: Product ID de TrialMaker
+        required: true
+        type: string
+      internal_trial_key:
+        description: Clave interna TrialMaker
+        required: true
+        type: string
+      display_name:
+        description: Nombre visible
         required: true
         type: string
 
@@ -37,7 +49,10 @@ jobs:
           REQUEST_ID: ${{ inputs.request_id }}
           HARDWARE_ID: ${{ inputs.hardware_id }}
           CLIENT: ${{ inputs.client }}
-          PRODUCT: ${{ inputs.product }}
+          PRODUCT_NAME: ${{ inputs.product_name }}
+          PRODUCT_ID: ${{ inputs.product_id }}
+          INTERNAL_TRIAL_KEY: ${{ inputs.internal_trial_key }}
+          DISPLAY_NAME: ${{ inputs.display_name }}
         run: node tools/generate-license.mjs
 
       - name: Publish response

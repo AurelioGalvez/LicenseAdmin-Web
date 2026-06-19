@@ -44,7 +44,7 @@ secret `SIGNED_LICENSE_PRIVATE_KEY`.
 
 La autoridad está fijada en `Launcher-Licenses`; `LicenseAdmin-Web` sólo
 ejecuta el workflow de firma. Antes de entregar una clave, la web añade el HWID
-a `Launcher-Licenses/Licenses.txt`, vuelve a leerlo para comprobar la
+  a `Launcher-Licenses/PremiumFullLicenses.json`, vuelve a leerlo para comprobar la
 autorización y repite la comprobación después de firmar.
 
 Configuracion inicial:
@@ -60,7 +60,7 @@ Configuracion inicial:
 La llave privada no debe publicarse, adjuntarse a releases ni copiarse dentro
 de Software Infamous.
 
-Al generar una clave, el HWID también se agrega a `Licenses.txt`. Eliminarlo
+Al generar una clave, el HWID también se agrega a `PremiumFullLicenses.json`. Eliminarlo
 desde Premium FULL revoca la licencia firmada en la siguiente validación online.
 
 ## Publicación
@@ -73,29 +73,29 @@ desde Premium FULL revoca la licencia firmada en la siguiente validación online
 
 ## Archivos administrados
 
-- `Licenses.txt`
+- `PremiumFullIdentity.json`
+- `PremiumFullLicenses.json`
 - `PremiumHwidEnabled.txt`
 - `PremiumHwidDefaultDays.txt`
-- `PremiumHwidLicenses.txt`
+- `PremiumTemporaryLicenses.json`
 - `PremiumFreeEnabled.txt`
 - `PremiumFreeDays.txt`
 - `PremiumFreeAcquisitionUntilUtc.txt`
-- `PremiumFreeProductName.txt`
+- `PremiumFreeIdentity.json`
 - `EnableFreeTrial.txt`
 - `FreeTrialDays.txt`
 - `FreeTrialAcquisitionUntilUtc.txt`
-- `ProductName.txt`
+- `FreeTrialIdentity.json`
 
 Las fechas de adquisicion usan `yyyy-MM-dd` y son inclusivas en UTC. Un archivo
 vacio no impone fecha limite. El vencimiento bloquea solamente nuevas
 adquisiciones; las licencias activas siguen funcionando mientras su modalidad
 permanezca habilitada.
 
-Free y Premium-Free tienen ProductName, Product ID y clave TrialMaker propios.
-El nombre canónico de Software Infamous se combina con el modo y la campaña:
-`Software_Infamous_FREE_<CAMPANA>` o
-`Software_Infamous_PREMIUM_FREE_<CAMPANA>`. El panel muestra esa clave final
-antes de guardar y ambas configuraciones pueden cambiarse independientemente.
+Premium FULL, FreeTrial y Premium-Free guardan identidades JSON de esquema 2.
+Cada una contiene ProductName, Product ID, clave interna TrialMaker, Nombre y
+tipo. El panel impide repetir ProductName, Product ID o clave interna entre
+modalidades. Los formatos `.txt` anteriores no son compatibles.
 
 ## Discord
 
@@ -126,18 +126,10 @@ el contenido pero impide que nuevas consultas lo muestren. **Limpiar campos**
 restaura el formulario live o Discord a sus valores iniciales sin publicar ni
 enviar cambios.
 
-`ProductName.txt` debe usar el formato `NOMBRE_PRODUCTO-ID`. El nombre base
-acepta letras, numeros y guion bajo; el ID admite versiones numericas.
-`PROYECTO_NUEVO-1.0.0` produce el nombre logico `PROYECTO_NUEVO` y el Product
-ID `#1.0.0#`. TrialMaker conserva internamente el valor completo como clave de
-campana para que cada ID tenga un Proof-of-Use independiente.
-
-El generador Premium FULL lee este archivo directamente desde el repositorio
-de licencias. El nombre base se envia al workflow como producto firmado y los
-guiones bajos se convierten en espacios. De esta forma,
-`Software_Infamous-15` firma para `Software Infamous`, mientras que
-`PROYECTO_NUEVO-1.0.0` firma para `PROYECTO NUEVO`. El workflow no contiene un producto
-predeterminado.
+El generador Premium FULL lee `PremiumFullIdentity.json` y firma los cuatro
+campos junto con el HWID y el tipo. Las claves nuevas comienzan con `SI2.`. En
+`lcgen.exe`, ProductName debe recibir exactamente `internalTrialKey` y
+ProductID debe recibir exactamente `productId`.
 
 ## Actualización de datos
 
@@ -152,10 +144,11 @@ Después de guardar una configuración, la sección vuelve a leer los archivos
 desde GitHub para confirmar los valores persistidos. Los cambios en los
 archivos de licencia no requieren volver a desplegar GitHub Pages.
 
-## Identidades separadas de licencias gratuitas
+## Identidades separadas
 
-FreeTrial administra `ProductName.txt` y Premium-Free administra
-`PremiumFreeProductName.txt`. Las dos secciones validan `NOMBRE_PRODUCTO-ID` y
+FreeTrial administra `FreeTrialIdentity.json`, Premium-Free administra
+`PremiumFreeIdentity.json` y el generador administra
+`PremiumFullIdentity.json`. Las tres secciones validan el esquema 2 y
 muestran por separado el Nombre, Product ID de TrialMaker (`#ID#`) y clave
 interna de campaña. Así una campaña Premium-Free no depende de FreeTrial.
 

@@ -5,7 +5,10 @@ import path from "node:path";
 const requestId = required("REQUEST_ID");
 const hardwareId = required("HARDWARE_ID");
 const client = required("CLIENT");
-const product = required("PRODUCT");
+const productName = required("PRODUCT_NAME");
+const productId = required("PRODUCT_ID");
+const internalTrialKey = required("INTERNAL_TRIAL_KEY");
+const displayName = required("DISPLAY_NAME");
 const privateKey = required("SIGNED_LICENSE_PRIVATE_KEY").replace(/\\n/g, "\n");
 
 if (!/^[a-f0-9-]{36}$/i.test(requestId)) {
@@ -14,17 +17,30 @@ if (!/^[a-f0-9-]{36}$/i.test(requestId)) {
 if (!/^[A-Za-z0-9-]{10,200}$/.test(hardwareId)) {
   throw new Error("Invalid Hardware ID.");
 }
-if (client.length > 120 || product.length > 120) {
-  throw new Error("Client or product is too long.");
+if (client.length > 120 || productName.length > 120 || displayName.length > 120) {
+  throw new Error("Client, ProductName or Name is too long.");
+}
+if (!/^#[A-Za-z0-9][A-Za-z0-9._-]{0,63}#$/.test(productId)) {
+  throw new Error("Invalid Product ID.");
+}
+if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,159}$/.test(internalTrialKey)) {
+  throw new Error("Invalid TrialMaker internal key.");
 }
 
 const payload = {
-  version: 1,
+  version: 2,
   licenseId: crypto.randomUUID(),
   type: "PremiumFull",
   hardwareId,
   client,
-  product,
+  identity: {
+    schemaVersion: 2,
+    type: "PremiumFull",
+    productName,
+    productId,
+    internalTrialKey,
+    name: displayName
+  },
   issuedUtc: new Date().toISOString()
 };
 
@@ -34,14 +50,14 @@ const signature = crypto.sign(
   Buffer.from(payloadBase64, "ascii"),
   privateKey
 );
-const license = `SI1.${payloadBase64}.${base64Url(signature)}`;
+const license = `SI2.${payloadBase64}.${base64Url(signature)}`;
 const output = {
   requestId,
   license,
   licenseId: payload.licenseId,
   hardwareId,
   client,
-  product,
+  identity: payload.identity,
   issuedUtc: payload.issuedUtc
 };
 
