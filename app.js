@@ -391,12 +391,16 @@ async function saveFullIdentity() {
   status("Identidad Premium FULL guardada y verificada.", "success");
 }
 
-async function loadFull() {
-  state.full = parseList((await readFile(files.full)).content);
+function renderFull() {
   $("fullRows").replaceChildren(...state.full.map(entry => row([
     entry.hardwareId, entry.comment,
     button("Eliminar", "danger", () => askDelete("full", entry.hardwareId))
   ], () => { $("fullHwid").value = entry.hardwareId; $("fullComment").value = entry.comment; })));
+}
+
+async function loadFull() {
+  state.full = parseList((await readFile(files.full)).content);
+  renderFull();
   status(`${state.full.length} licencias Premium FULL cargadas.`, "success");
 }
 
@@ -412,7 +416,8 @@ async function saveFull() {
     state.full.push({ hardwareId, identity, comment: $("fullComment").value.trim() });
   }
   await writeFile(files.full, serializeList(state.full, identity), `${existing ? "Update" : "Add"} Premium FULL ${hardwareId}`);
-  await loadFull();
+  renderFull();
+  status(`Hardware ID ${hardwareId} ${existing ? "actualizado" : "agregado"} exitosamente.`, "success");
 }
 
 async function generateSignedLicense() {
@@ -561,15 +566,7 @@ async function copyGeneratedLicense() {
 
 const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
-async function loadTemporary() {
-  const [enabled, defaults, list] = await Promise.all([
-    readFile(files.tempEnabled), readFile(files.tempDefaultDays), readFile(files.temporary)
-  ]);
-  $("tempEnabled").checked = enabled.content.trim().toLowerCase() !== "false" && !!list.content.trim();
-  const defaultDays = Number(defaults.content.trim()) || 7;
-  $("tempDefaultDays").value = defaultDays;
-  $("tempDays").value = defaultDays;
-  state.temporary = parseTemporary(list.content);
+function renderTemporary() {
   $("tempRows").replaceChildren(...state.temporary.map(entry => {
     const expiry = new Date(new Date(entry.activationUtc).getTime() + entry.days * 86400000).toISOString();
     return row([entry.hardwareId, entry.activationUtc, String(entry.days), expiry, entry.comment,
@@ -579,6 +576,18 @@ async function loadTemporary() {
       $("tempDays").value = entry.days; $("tempRestart").checked = false;
     });
   }));
+}
+
+async function loadTemporary() {
+  const [enabled, defaults, list] = await Promise.all([
+    readFile(files.tempEnabled), readFile(files.tempDefaultDays), readFile(files.temporary)
+  ]);
+  $("tempEnabled").checked = enabled.content.trim().toLowerCase() !== "false" && !!list.content.trim();
+  const defaultDays = Number(defaults.content.trim()) || 7;
+  $("tempDefaultDays").value = defaultDays;
+  $("tempDays").value = defaultDays;
+  state.temporary = parseTemporary(list.content);
+  renderTemporary();
   status(`${state.temporary.length} licencias Premium temporales cargadas.`, "success");
 }
 
@@ -587,8 +596,7 @@ async function saveTempConfig() {
     writeFile(files.tempEnabled, `${$("tempEnabled").checked ? "True" : "False"}\n`, "Update Premium HWID enabled state"),
     writeFile(files.tempDefaultDays, `${validDays("tempDefaultDays")}\n`, "Update Premium HWID default duration")
   ]);
-  await loadTemporary();
-  status("Configuración Premium temporal guardada y verificada.", "success");
+  status("Configuración Premium temporal guardada.", "success");
 }
 
 async function saveTemporary() {
@@ -609,7 +617,8 @@ async function saveTemporary() {
     writeFile(files.tempDefaultDays, `${validDays("tempDefaultDays")}\n`, "Ensure Premium HWID default duration"),
     writeFile(files.temporary, serializeTemporary(state.temporary, identity), `Update temporary Premium ${hardwareId}`)
   ]);
-  await loadTemporary();
+  renderTemporary();
+  status(`Hardware ID temporal ${hardwareId} guardado exitosamente.`, "success");
 }
 
 async function loadPremiumFree() {
@@ -634,8 +643,7 @@ async function savePremiumFree() {
     writeFile(files.premiumFreeUntil, `${validDate("premiumFreeUntil")}\n`, "Update Premium-Free acquisition deadline"),
     writeFile(files.premiumFreeIdentity, serializeIdentity(identity), "Update Premium-Free identity schema 2")
   ]);
-  await loadPremiumFree();
-  status("Premium-Free actualizado y verificado.", "success");
+  status("Configuración Premium-Free guardada exitosamente.", "success");
 }
 
 async function loadFree() {
@@ -655,8 +663,7 @@ async function saveFree() {
     writeFile(files.freeUntil, `${validDate("freeUntil")}\n`, "Update FreeTrial acquisition deadline"),
     writeFile(files.freeIdentity, serializeIdentity(identity), "Update FreeTrial identity schema 2")
   ]);
-  await loadFree();
-  status("FreeTrial actualizado y verificado.", "success");
+  status("Configuración FreeTrial guardada exitosamente.", "success");
 }
 
 function validDays(id) {
@@ -790,12 +797,14 @@ async function confirmDelete() {
     state.full = state.full.filter(x => x.hardwareId.toLowerCase() !== pending.hardwareId.toLowerCase());
     const identity = await loadFullIdentity();
     await writeFile(files.full, serializeList(state.full, identity), `Remove Premium FULL ${pending.hardwareId}`);
-    await loadFull();
+    renderFull();
+    status(`Hardware ID ${pending.hardwareId} eliminado exitosamente.`, "success");
   } else {
     state.temporary = state.temporary.filter(x => x.hardwareId.toLowerCase() !== pending.hardwareId.toLowerCase());
     const identity = await loadFullIdentity();
     await writeFile(files.temporary, serializeTemporary(state.temporary, identity), `Remove temporary Premium ${pending.hardwareId}`);
-    await loadTemporary();
+    renderTemporary();
+    status(`Hardware ID ${pending.hardwareId} temporal eliminado exitosamente.`, "success");
   }
 }
 
