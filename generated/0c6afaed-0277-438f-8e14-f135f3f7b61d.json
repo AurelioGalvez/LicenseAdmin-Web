@@ -1,0 +1,16 @@
+{
+  "requestId": "0c6afaed-0277-438f-8e14-f135f3f7b61d",
+  "license": "SI2.eyJ2ZXJzaW9uIjoyLCJsaWNlbnNlSWQiOiJjNjU0OTA2Ny1kNDlkLTRmYWEtOGQ2Ni1iMWY4YTQ0OTgxZDgiLCJ0eXBlIjoiUHJlbWl1bUZ1bGwiLCJoYXJkd2FyZUlkIjoiTDFSVFU4QkctWVBESERTWFctSUhKWDNBSUwtWkRMT0lDUTUtTE0wViIsImNsaWVudCI6IkFETUlOIiwiaWRlbnRpdHkiOnsic2NoZW1hVmVyc2lvbiI6MiwidHlwZSI6IlByZW1pdW1GdWxsIiwicHJvZHVjdE5hbWUiOiJTb2Z0d2FyZV9JbmZhbW91cyIsInByb2R1Y3RJZCI6IiMxLjcuNiMiLCJpbnRlcm5hbFRyaWFsS2V5IjoiU29mdHdhcmVfSW5mYW1vdXNfUHJlbWl1bSIsIm5hbWUiOiJTb2Z0d2FyZSBJbmZhbW91cyJ9LCJpc3N1ZWRVdGMiOiIyMDI2LTA2LTE5VDAzOjIyOjMxLjc2NFoifQ.equf-LizV5jfjrr6oJ4ASUnnF2SJweWDpQeTorJNYy3FNQgFO30yzpqWUSU2LU_arkKvxAoOivn_-abMS6w2ComD9JyjMqLDJkevv1enfIfJY3CZ3JQQtwvVvAuGt-otTfq9N9UH4_2uH2pNCDnxIL0FscXSq8TYVCmGA2rPKRpGGXf1vQQxN_x673vtma54Wxe7q-oCEYh6rhBUYT08raGaiQp2if3-Wu2cwjjGDBi3EfTbK4wUhCHqBuNzjJA8fcYYOYey7vDCWC5H_9ySnJmJWagWTkeeWGGpG9OL2X-FtgHUQWUOR5kVJ1LSkIXmmPJiOtBwEQp-zfsSz378kObn_GhMdYWF6jXoocSvopk8OqZNHPN2EHpTbMm3qEf8b5ABdzCQsyx_vACK6Hokp0vhgRaEQ2tNcF64d4Mk4FZdHjQIOmo5uTNZlOyLRlc82f7tz7mYGORoDel6DhNfrPuIv5wfqkD5SD3bfWVDobLJDMlLlOoE-7ULoQi1Q3Ox",
+  "licenseId": "c6549067-d49d-4faa-8d66-b1f8a44981d8",
+  "hardwareId": "L1RTU8BG-YPDHDSXW-IHJX3AIL-ZDLOICQ5-LM0V",
+  "client": "ADMIN",
+  "identity": {
+    "schemaVersion": 2,
+    "type": "PremiumFull",
+    "productName": "Software_Infamous",
+    "productId": "#1.7.6#",
+    "internalTrialKey": "Software_Infamous_Premium",
+    "name": "Software Infamous"
+  },
+  "issuedUtc": "2026-06-19T03:22:31.764Z"
+}
