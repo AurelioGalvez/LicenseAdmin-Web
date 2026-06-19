@@ -67,8 +67,6 @@ async function api(url, options = {}) {
       cache: "no-store",
       ...options,
       headers: {
-        "Pragma": "no-cache",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
         ...apiHeaders(),
         ...(options.headers || {})
       }
