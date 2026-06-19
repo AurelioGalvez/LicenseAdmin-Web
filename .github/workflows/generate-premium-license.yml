@@ -33,6 +33,14 @@ on:
         description: Nombre visible
         required: true
         type: string
+      license_type:
+        description: Tipo de licencia (PremiumFull, PremiumFree, FreeTrial)
+        required: true
+        type: string
+      total_days:
+        description: Días de duración de la licencia
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -53,6 +61,8 @@ jobs:
           PRODUCT_ID: ${{ inputs.product_id }}
           INTERNAL_TRIAL_KEY: ${{ inputs.internal_trial_key }}
           DISPLAY_NAME: ${{ inputs.display_name }}
+          LICENSE_TYPE: ${{ inputs.license_type }}
+          TOTAL_DAYS: ${{ inputs.total_days }}
         run: node tools/generate-license.mjs
 
       - name: Publish response

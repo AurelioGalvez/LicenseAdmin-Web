@@ -417,11 +417,19 @@ async function generateSignedLicense() {
   requireConnection();
   const hardwareId = $("generatorHwid").value.trim();
   const client = $("generatorClient").value.trim();
-  const identity = await loadFullIdentity();
+  const licenseType = $("generatorLicenseType").value;
+  const totalDays = $("generatorDays").value.trim();
+
   if (!/^[A-Za-z0-9-]{10,200}$/.test(hardwareId)) {
     throw new Error("Introduce un Hardware ID válido.");
   }
   if (!client) throw new Error("Introduce el nombre del cliente.");
+  if (!totalDays || isNaN(totalDays) || Number(totalDays) < 1) {
+    throw new Error("Introduce días de duración válidos.");
+  }
+
+  // Cargar identidad Premium FULL para autorizar online
+  const fullIdentity = parseIdentity((await readFile(files.fullIdentity)).content, "PremiumFull");
 
   const requestId = crypto.randomUUID();
   $("generatedLicense").value = "";
@@ -429,8 +437,8 @@ async function generateSignedLicense() {
     `Autorizando el HWID en ${licenseAuthority.repository}...`,
     ""
   );
-  const authorityBranch = await authorizeSignedPremium(hardwareId, client, identity);
-  status("HWID autorizado. Solicitando la firma...", "");
+  const authorityBranch = await authorizeSignedPremium(hardwareId, client, fullIdentity);
+  status("HWID autorizado. Solicitando la clave...", "");
 
   await api(
     `https://api.github.com/repos/${encodeURIComponent(state.owner)}/${generator.repository}/actions/workflows/${generator.workflow}/dispatches`,
@@ -443,10 +451,12 @@ async function generateSignedLicense() {
           request_id: requestId,
           hardware_id: hardwareId,
           client,
-          product_name: identity.productName,
-          product_id: identity.productId,
-          internal_trial_key: identity.internalTrialKey,
-          display_name: identity.name
+          product_name: $("generatorProductName").value.trim(),
+          product_id: $("generatorProductId").value.trim(),
+          internal_trial_key: $("generatorInternalKey").value.trim(),
+          display_name: $("generatorName").value.trim(),
+          license_type: licenseType,
+          total_days: totalDays
         }
       })
     }
@@ -500,6 +510,44 @@ async function generateSignedLicense() {
   throw new Error(
     "GitHub Actions no respondió en 3 minutos. Revisa la pestaña Actions del repositorio."
   );
+}
+
+async function updateGeneratorFieldsFromLicenseType() {
+  const type = $("generatorLicenseType").value;
+  status(`Cargando identidad para ${type}...`, "");
+  try {
+    let identity;
+    let days = 365;
+    if (type === "PremiumFull") {
+      identity = parseIdentity((await readFile(files.fullIdentity)).content, "PremiumFull");
+      days = 3650;
+    } else if (type === "PremiumFree") {
+      const [identityRemote, daysRemote] = await Promise.all([
+        readFile(files.premiumFreeIdentity),
+        readFile(files.premiumFreeDays)
+      ]);
+      identity = parseIdentity(identityRemote.content, "PremiumFree");
+      days = Number(daysRemote.content.trim()) || 7;
+    } else if (type === "FreeTrial") {
+      const [identityRemote, daysRemote] = await Promise.all([
+        readFile(files.freeIdentity),
+        readFile(files.freeDays)
+      ]);
+      identity = parseIdentity(identityRemote.content, "FreeTrial");
+      days = Number(daysRemote.content.trim()) || 7;
+    }
+
+    if (identity) {
+      $("generatorProductName").value = identity.productName;
+      $("generatorProductId").value = identity.productId;
+      $("generatorInternalKey").value = identity.internalTrialKey;
+      $("generatorName").value = identity.name;
+      $("generatorDays").value = days;
+      status(`Campos del generador actualizados para ${type}.`, "success");
+    }
+  } catch (error) {
+    status(`Error al cargar la identidad: ${error.message}`, "error");
+  }
 }
 
 async function copyGeneratedLicense() {
@@ -753,10 +801,7 @@ async function loadActivePanel() {
   const active = document.querySelector(".panel.active").id;
   const loaders = {
     full: loadFull,
-    generator: async () => {
-      const identity = await loadFullIdentity();
-      status(`Generador Premium FULL listo para ${identity.name} (${identity.productId}).`, "success");
-    },
+    generator: updateGeneratorFieldsFromLicenseType,
     temporary: loadTemporary,
     premiumFree: loadPremiumFree,
     freeTrial: loadFree,
@@ -788,6 +833,7 @@ const actions = {
 };
 document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", () => run(actions[el.dataset.action])));
 $("connect").addEventListener("click", () => run(connect));
+$("generatorLicenseType").addEventListener("change", () => run(updateGeneratorFieldsFromLicenseType));
 $("cancelDelete").addEventListener("click", () => $("confirmDialog").close());
 $("confirmDelete").addEventListener("click", () => run(confirmDelete));
 document.querySelectorAll("[data-format]").forEach(button =>

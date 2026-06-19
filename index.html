@@ -59,11 +59,20 @@
     <section id="generator" class="panel card">
       <div class="panel-heading">
         <div>
-          <h2>Generar clave Premium FULL</h2>
-          <p>Emite una licencia firmada y ligada al Hardware ID mediante GitHub Actions.</p>
+          <h2>Generar clave</h2>
+          <p>Emite una licencia y la liga al Hardware ID mediante GitHub Actions.</p>
         </div>
       </div>
       <div class="editor generator-editor">
+        <div class="field">
+          <label for="generatorLicenseType">Tipo de licencia</label>
+          <select id="generatorLicenseType">
+            <option value="PremiumFull">Premium FULL</option>
+            <option value="PremiumFree">PREMIUM-TRIAL (Premium-Free)</option>
+            <option value="FreeTrial">FREETRIAL (FreeTrial)</option>
+          </select>
+        </div>
+        <div class="field"><label for="generatorDays">Días de duración</label><input id="generatorDays" type="number" min="1" max="3650" value="365"></div>
         <div class="field"><label for="generatorHwid">Hardware ID</label><input id="generatorHwid"></div>
         <div class="field"><label for="generatorClient">Cliente</label><input id="generatorClient"></div>
         <div class="field"><label for="generatorProductName">ProductName</label><input id="generatorProductName" value="SOFTWARE_INFAMOUS_PREMIUM_FULL"></div>
@@ -80,7 +89,7 @@
         <button data-action="copy-license">Copiar clave</button>
       </div>
       <p class="security-note generator-note">
-        Requiere el secret <code>SIGNED_LICENSE_PRIVATE_KEY</code> y permisos Actions/Contents de lectura y escritura para <code>LicenseAdmin-Web</code>.
+        Permisos Actions/Contents de lectura y escritura para <code>LicenseAdmin-Web</code>.
       </p>
     </section>
 
