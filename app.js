@@ -61,10 +61,14 @@ function contentUrl(path) {
 async function api(url, options = {}) {
   let response;
   try {
-    response = await fetch(url, {
+    const isGet = !options.method || options.method.toUpperCase() === 'GET';
+    const finalUrl = isGet ? (url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`) : url;
+    response = await fetch(finalUrl, {
       cache: "no-store",
       ...options,
       headers: {
+        "Pragma": "no-cache",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
         ...apiHeaders(),
         ...(options.headers || {})
       }
