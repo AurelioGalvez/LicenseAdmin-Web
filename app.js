@@ -524,24 +524,9 @@ async function updateGeneratorFieldsFromLicenseType() {
   status(`Cargando identidad para ${type}...`, "");
   try {
     let identity;
-    let days = 365;
+    let days = 3650;
     if (type === "PremiumFull") {
       identity = parseIdentity((await readFile(files.fullIdentity)).content, "PremiumFull");
-      days = 3650;
-    } else if (type === "PremiumFree") {
-      const [identityRemote, daysRemote] = await Promise.all([
-        readFile(files.premiumFreeIdentity),
-        readFile(files.premiumFreeDays)
-      ]);
-      identity = parseIdentity(identityRemote.content, "PremiumFree");
-      days = Number(daysRemote.content.trim()) || 7;
-    } else if (type === "FreeTrial") {
-      const [identityRemote, daysRemote] = await Promise.all([
-        readFile(files.freeIdentity),
-        readFile(files.freeDays)
-      ]);
-      identity = parseIdentity(identityRemote.content, "FreeTrial");
-      days = Number(daysRemote.content.trim()) || 7;
     }
 
     if (identity) {
