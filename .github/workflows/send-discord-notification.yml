@@ -16,6 +16,7 @@ on:
         options:
           - announcements
           - tests
+          - infamous
       content:
         description: Message content
         required: false
@@ -53,4 +54,5 @@ jobs:
           AVATAR_URL: ${{ inputs.avatar_url }}
           DISCORD_WEBHOOK_ANNOUNCEMENTS: ${{ secrets.DISCORD_WEBHOOK_ANNOUNCEMENTS }}
           DISCORD_WEBHOOK_TESTS: ${{ secrets.DISCORD_WEBHOOK_TESTS }}
+          DISCORD_WEBHOOK_INFAMOUS: ${{ secrets.DISCORD_WEBHOOK_INFAMOUS }}
         run: node tools/send-discord.mjs

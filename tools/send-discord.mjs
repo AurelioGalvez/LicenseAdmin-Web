@@ -1,7 +1,8 @@
 const channel = process.env.CHANNEL;
 const webhooks = {
   announcements: process.env.DISCORD_WEBHOOK_ANNOUNCEMENTS,
-  tests: process.env.DISCORD_WEBHOOK_TESTS
+  tests: process.env.DISCORD_WEBHOOK_TESTS,
+  infamous: process.env.DISCORD_WEBHOOK_INFAMOUS
 };
 
 if (!Object.hasOwn(webhooks, channel)) {
