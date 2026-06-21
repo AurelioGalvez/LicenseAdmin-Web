@@ -527,6 +527,13 @@ async function updateGeneratorFieldsFromLicenseType() {
     let days = 3650;
     if (type === "PremiumFull") {
       identity = parseIdentity((await readFile(files.fullIdentity)).content, "PremiumFull");
+    } else if (type === "PremiumFree") {
+      identity = parseIdentity((await readFile(files.premiumFreeIdentity)).content, "PremiumFree");
+    } else if (type === "FreeTrial") {
+      identity = parseIdentity((await readFile(files.freeIdentity)).content, "FreeTrial");
+    } else if (type === "PremiumHwid") {
+      // PremiumHwid uses PremiumFull identity internally for validation scope
+      identity = parseIdentity((await readFile(files.fullIdentity)).content, "PremiumFull");
     }
 
     if (identity) {
