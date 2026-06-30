@@ -38,6 +38,7 @@
       <button class="tab" data-panel="temporary">Premium temporal</button>
       <button class="tab" data-panel="premiumFree">Premium-Free</button>
       <button class="tab" data-panel="freeTrial">FreeTrial</button>
+      <button class="tab" data-panel="preRelease">Pre-release</button>
       <button class="tab" data-panel="communications">Comunicaciones</button>
     </nav>
 
@@ -143,6 +144,21 @@
         <div class="field"><label for="trialNamePreview">Clave interna TrialMaker</label><input id="trialNamePreview" value="Software_Infamous_LIC2_FREE"></div>
         <button class="primary" data-action="save-free">Guardar</button>
         <button class="refresh" data-action="load-free">Actualizar</button>
+      </div>
+    </section>
+
+    <section id="preRelease" class="panel card">
+      <div class="panel-heading">
+        <div><h2>Actualizaciones beta</h2><p>HWIDs autorizados para descargar GitHub pre-releases desde <code>getPreReleaseUpdates.txt</code>.</p></div>
+        <button class="refresh" data-action="load-prerelease">Actualizar</button>
+      </div>
+      <div class="editor three">
+        <div class="field"><label for="preReleaseHwid">Hardware ID</label><input id="preReleaseHwid"></div>
+        <div class="field"><label for="preReleaseComment">Comentario</label><input id="preReleaseComment"></div>
+        <button class="primary" data-action="save-prerelease">Agregar / actualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Hardware ID</th><th>Comentario</th><th></th></tr></thead><tbody id="preReleaseRows"></tbody></table>
       </div>
     </section>
 

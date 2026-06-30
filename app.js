@@ -1,6 +1,6 @@
 "use strict";
 
-const state = { token: "", owner: "", repo: "", branch: "main", full: [], temporary: [], pendingDelete: null };
+const state = { token: "", owner: "", repo: "", branch: "main", full: [], temporary: [], preRelease: [], pendingDelete: null };
 const $ = id => document.getElementById(id);
 const generator = {
   repository: "LicenseAdmin-Web",
@@ -29,7 +29,8 @@ const files = {
   freeEnabled: "EnableFreeTrial.txt",
   freeDays: "FreeTrialDays.txt",
   freeUntil: "FreeTrialAcquisitionUntilUtc.txt",
-  freeIdentity: "FreeTrialIdentity.json"
+  freeIdentity: "FreeTrialIdentity.json",
+  preReleaseUpdates: "getPreReleaseUpdates.txt"
 };
 
 function status(message, type = "") {
@@ -287,6 +288,38 @@ const serializeTemporary = (entries, identity) => `${JSON.stringify({
       comment: (x.comment || "").replace(/[\r\n]/g, " ")
     }))
 }, null, 2)}\n`;
+
+function parsePreRelease(content) {
+  if (!content.trim()) return [];
+  const entries = [];
+  const seen = new Set();
+  for (const rawLine of content.replace(/\r\n/g, "\n").split("\n")) {
+    let line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    if (line.charCodeAt(0) === 0xFEFF) line = line.slice(1).trim();
+    const parts = line.split("//");
+    const hardwareId = parts.shift().trim();
+    if (!hardwareId) continue;
+    const key = hardwareId.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    entries.push({
+      hardwareId,
+      comment: parts.join("//").trim()
+    });
+  }
+  return entries;
+}
+
+const serializePreRelease = entries => `${entries
+  .slice()
+  .sort((a, b) => a.hardwareId.localeCompare(b.hardwareId))
+  .map(x => {
+    const hardwareId = x.hardwareId.trim();
+    const comment = (x.comment || "").replace(/[\r\n]/g, " ").trim();
+    return comment ? `${hardwareId}//${comment}` : hardwareId;
+  })
+  .join("\n")}\n`;
 
 const identityFields = {
   PremiumFull: {
@@ -658,6 +691,39 @@ async function saveFree() {
   status("Configuración FreeTrial guardada exitosamente.", "success");
 }
 
+function renderPreRelease() {
+  $("preReleaseRows").replaceChildren(...state.preRelease.map(entry => row([
+    entry.hardwareId, entry.comment,
+    button("Eliminar", "danger", () => askDelete("preRelease", entry.hardwareId))
+  ], () => {
+    $("preReleaseHwid").value = entry.hardwareId;
+    $("preReleaseComment").value = entry.comment;
+  })));
+}
+
+async function loadPreRelease() {
+  state.preRelease = parsePreRelease((await readFile(files.preReleaseUpdates)).content);
+  renderPreRelease();
+  status(`${state.preRelease.length} HWIDs beta cargados.`, "success");
+}
+
+async function savePreRelease() {
+  const hardwareId = $("preReleaseHwid").value.trim();
+  if (!hardwareId) throw new Error("Introduce un Hardware ID.");
+  const existing = state.preRelease.find(x => x.hardwareId.toLowerCase() === hardwareId.toLowerCase());
+  if (existing) {
+    existing.comment = $("preReleaseComment").value.trim();
+  } else {
+    state.preRelease.push({ hardwareId, comment: $("preReleaseComment").value.trim() });
+  }
+  await writeFile(
+    files.preReleaseUpdates,
+    serializePreRelease(state.preRelease),
+    `${existing ? "Update" : "Add"} pre-release updates ${hardwareId}`);
+  renderPreRelease();
+  status(`Hardware ID ${hardwareId} ${existing ? "actualizado" : "agregado"} para beta.`, "success");
+}
+
 function validDays(id) {
   const value = Number($(id).value);
   if (!Number.isInteger(value) || value < 1 || value > 3650) throw new Error("Los días deben estar entre 1 y 3650.");
@@ -791,12 +857,17 @@ async function confirmDelete() {
     await writeFile(files.full, serializeList(state.full, identity), `Remove Premium FULL ${pending.hardwareId}`);
     renderFull();
     status(`Hardware ID ${pending.hardwareId} eliminado exitosamente.`, "success");
-  } else {
+  } else if (pending.type === "temporary") {
     state.temporary = state.temporary.filter(x => x.hardwareId.toLowerCase() !== pending.hardwareId.toLowerCase());
     const identity = await loadFullIdentity();
     await writeFile(files.temporary, serializeTemporary(state.temporary, identity), `Remove temporary Premium ${pending.hardwareId}`);
     renderTemporary();
     status(`Hardware ID ${pending.hardwareId} temporal eliminado exitosamente.`, "success");
+  } else if (pending.type === "preRelease") {
+    state.preRelease = state.preRelease.filter(x => x.hardwareId.toLowerCase() !== pending.hardwareId.toLowerCase());
+    await writeFile(files.preReleaseUpdates, serializePreRelease(state.preRelease), `Remove pre-release updates ${pending.hardwareId}`);
+    renderPreRelease();
+    status(`Hardware ID ${pending.hardwareId} eliminado de beta.`, "success");
   }
 }
 
@@ -808,6 +879,7 @@ async function loadActivePanel() {
     temporary: loadTemporary,
     premiumFree: loadPremiumFree,
     freeTrial: loadFree,
+    preRelease: loadPreRelease,
     communications: async () => status("Comunicaciones de Discord listas.", "success")
   };
   return loaders[active]();
@@ -832,6 +904,7 @@ const actions = {
   "load-temporary": loadTemporary, "save-temp-config": saveTempConfig, "save-temporary": saveTemporary,
   "load-premium-free": loadPremiumFree, "save-premium-free": savePremiumFree,
   "load-free": loadFree, "save-free": saveFree,
+  "load-prerelease": loadPreRelease, "save-prerelease": savePreRelease,
   "send-discord": sendDiscordWebhook, "clear-discord": clearDiscordForm
 };
 document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", () => run(actions[el.dataset.action])));

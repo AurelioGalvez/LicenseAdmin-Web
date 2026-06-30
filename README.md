@@ -86,6 +86,7 @@ desde Premium FULL revoca la licencia firmada en la siguiente validación online
 - `FreeTrialDays.txt`
 - `FreeTrialAcquisitionUntilUtc.txt`
 - `FreeTrialIdentity.json`
+- `getPreReleaseUpdates.txt`
 
 Las fechas de adquisicion usan `yyyy-MM-dd` y son inclusivas en UTC. Un archivo
 vacio no impone fecha limite. El vencimiento bloquea solamente nuevas
@@ -96,6 +97,19 @@ Premium FULL, FreeTrial y Premium-Free guardan identidades JSON de esquema 2.
 Cada una contiene ProductName, Product ID, clave interna TrialMaker, Nombre y
 tipo. El panel impide repetir ProductName, Product ID o clave interna entre
 modalidades. Los formatos `.txt` anteriores no son compatibles.
+
+## Actualizaciones beta
+
+La pestana **Pre-release** administra `getPreReleaseUpdates.txt`. Cada linea
+autoriza un Hardware ID para recibir GitHub pre-releases desde el cliente:
+
+```text
+HWID//Comentario opcional
+```
+
+Si el HWID no aparece en ese archivo, LicensingLib usa solamente releases
+finales. El archivo no otorga licencias ni funciones Premium; solo cambia el
+canal de actualizacion permitido.
 
 ## Discord
 
